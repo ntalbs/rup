@@ -28,16 +28,29 @@ impl FromStr for Request {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) -> Result<(), &'static str> {
-    let request_line = BufReader::new(&mut stream)
-        .lines()
-        .take(1) // read only first line
-        .map(|result| result.unwrap())
-        .next()
-        .unwrap();
+impl Into<Request> for String {
+    fn into(self) -> Request {
+        let v = self.split_whitespace().take(2).collect::<Vec<&str>>();
+        if let [method, path] = &v[..] {
+            Request { method: method.to_string(), path: trim_path(path).to_string() }
+        } else {
+            panic!("Fail to get request method/path")
+        }
+    }
+}
 
-    let request = Request::from_str(&request_line)?;
-    println!("{} => {} {}", request_line, request.method, request.path);
+fn request_line(mut stream: &TcpStream) -> String {
+    BufReader::new(&mut stream)
+        .lines()
+        .map(|result| result.unwrap())
+        .take(1) // read only first line
+        .next()
+        .unwrap()
+}
+
+fn handle_connection(mut stream: TcpStream) -> Result<(), &'static str> {
+    let request: Request = request_line(&stream).into();
+    println!("{} {}", request.method, request.path);
 
     let body = "Hello, world!\n";
 
