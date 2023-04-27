@@ -11,13 +11,17 @@ struct Request {
     path: String,
 }
 
+fn trim_path(input: &str) -> &str {
+    input.split(|c| c == '#' || c == '?').next().unwrap()
+}
+
 impl FromStr for Request {
     type Err = &'static str;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            Ok(Request { method: method.to_string(), path: path.to_string() })
+            Ok(Request { method: method.to_string(), path: trim_path(path).to_string() })
         } else {
             Err("Fail to get request method/path")
         }
