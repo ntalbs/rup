@@ -1,24 +1,39 @@
-use std::error::Error;
 use std::io::{Write, BufReader, BufRead};
 use std::net::{TcpListener, TcpStream};
+use std::str::FromStr;
 use std::thread;
 
-fn get_method_and_path(line: String) -> (String, String) {
-    let v = line.split_whitespace().take(2).collect::<Vec<&str>>();
-    (v[0].to_string(), v[1].to_string())
+/// Represents HTTP Request. Currently, only interested in `method` and `path`.
+/// Though it has `method` field, only supported HTTP method will be GET, and
+/// other methods in requests will cause error HTTP-404.
+struct Request {
+    method: String,
+    path: String,
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    let http_request = BufReader::new(&mut stream)
+impl FromStr for Request {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
+        if let [method, path] = &v[..] {
+            Ok(Request { method: method.to_string(), path: path.to_string() })
+        } else {
+            Err("Fail to get request method/path")
+        }
+    }
+}
+
+fn handle_connection(mut stream: TcpStream) -> Result<(), &'static str> {
+    let request_line = BufReader::new(&mut stream)
         .lines()
+        .take(1) // read only first line
         .map(|result| result.unwrap())
-        .take_while(|line| !line.is_empty())
         .next()
         .unwrap();
 
-    let (method, path) = get_method_and_path(http_request);
-    println!("Method: {method}");
-    println!("Path: {path}");
+    let request = Request::from_str(&request_line)?;
+    println!("{} => {} {}", request_line, request.method, request.path);
 
     let body = "Hello, world!\n";
 
@@ -26,6 +41,8 @@ fn handle_connection(mut stream: TcpStream) {
     stream.write(b"Content-Length: 14\n").unwrap();
     stream.write(b"Content-Type: text/plain\n\n").unwrap();
     stream.write(body.as_bytes()).unwrap();
+
+    Ok(())
 }
 
 fn main() {
@@ -35,7 +52,10 @@ fn main() {
         match stream {
             Ok(stream) => {
                 thread::spawn(move || {
-                    handle_connection(stream);
+                    match handle_connection(stream) {
+                        Ok(_) => {},
+                        Err(e) => eprintln!("{e:?}")
+                    }
                 });
             }
             Err(e) => {
