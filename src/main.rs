@@ -1,6 +1,5 @@
 use std::io::{self, ErrorKind, Read, Write, BufReader, BufRead};
 use std::net::{TcpListener, TcpStream};
-use std::str::FromStr;
 use std::thread;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
@@ -15,29 +14,14 @@ fn trim_path(input: &str) -> &str {
     input.split(|c| c == '#' || c == '?').next().unwrap()
 }
 
-impl FromStr for Request {
-    type Err = &'static str;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+impl TryFrom<String> for Request {
+    type Error = &'static str;
+    fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
             Ok(Request { method: method.to_string(), path: trim_path(path).to_string() })
         } else {
             Err("Fail to get request method/path")
-        }
-    }
-}
-
-impl Into<Request> for String {
-    fn into(self) -> Request {
-        let v = self.split_whitespace().take(2).collect::<Vec<&str>>();
-        if let [method, path] = &v[..] {
-            Request {
-                method: method.to_string(),
-                path: format!("./{}", trim_path(path).to_string())
-            }
-        } else {
-            panic!("Fail to get request method/path")
         }
     }
 }
@@ -67,25 +51,41 @@ fn send<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<u64>
     }
 }
 
+fn http_400(stream: &mut TcpStream) -> io::Result<u64> {
+    let body = b"Bad Request\n";
+    stream.write_all(b"HTTP/1.1 400 Bad Request\n").unwrap();
+    stream.write_all(b"Content-Type: text/plain\n").unwrap();
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
+    stream.write_all(body).unwrap();
+    Err(io::Error::new(ErrorKind::Other, "400 Bad Request"))
+}
+
 fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
     let body = b"Not Found\n";
-    stream.write(b"HTTP/1.1 404 Not Fount\n").unwrap();
-    stream.write(b"Content-Type: text/plain\n").unwrap();
-    stream.write(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
-    stream.write(body).unwrap();
+    stream.write_all(b"HTTP/1.1 404 Not Fount\n").unwrap();
+    stream.write_all(b"Content-Type: text/plain\n").unwrap();
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
+    stream.write_all(body).unwrap();
     Err(io::Error::new(ErrorKind::Other, "404 Not Found"))
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
-    let request: Request = request_line(&stream).into();
+    let request = match Request::try_from(request_line(&stream)) {
+        Ok(request) => request,
+        Err(_) => {
+            eprintln!("Bad Request.");
+            return http_400(&mut stream);
+        }
+    };
+
     println!("{} {}", request.method, request.path);
 
     let file = std::fs::File::open(&request.path);
     return match file {
         Ok(mut f) => {
-            stream.write(b"HTTP/1.1 200 OK\n").unwrap();
-            stream.write(b"Content-Type: text/plain\n").unwrap();
-            stream.write(format!("Content-Length: {}\r\n\r\n", f.metadata().unwrap().len()).as_bytes()).unwrap();
+            stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
+            stream.write_all(b"Content-Type: text/plain\n").unwrap();
+            stream.write_all(format!("Content-Length: {}\r\n\r\n", f.metadata().unwrap().len()).as_bytes()).unwrap();
             send(&mut f, &mut stream)
         }
         Err(_) => http_404(&mut stream),
