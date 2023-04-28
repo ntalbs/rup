@@ -19,7 +19,7 @@ impl TryFrom<String> for Request {
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            Ok(Request { method: method.to_string(), path: trim_path(path).to_string() })
+            Ok(Request { method: method.to_string(), path: format!("./{}", trim_path(path).to_string()) })
         } else {
             Err("Fail to get request method/path")
         }
