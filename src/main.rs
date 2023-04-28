@@ -73,7 +73,7 @@ fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
     stream.write(b"Content-Type: text/plain\n").unwrap();
     stream.write(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
     stream.write(body).unwrap();
-    Err(io::Error::new(ErrorKind::Other, "404 Not Fount"))
+    Err(io::Error::new(ErrorKind::Other, "404 Not Found"))
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
