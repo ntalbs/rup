@@ -1,5 +1,7 @@
 use std::io::{self, ErrorKind, Read, Write, BufReader, BufRead};
+use std::fs;
 use std::net::{TcpListener, TcpStream};
+use std::path::Path;
 use std::thread;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
@@ -8,6 +10,22 @@ use std::thread;
 struct Request {
     method: String,
     path: String,
+}
+
+fn mime_type(path: &str) -> &'static str {
+    match path.split('.').last() {
+        Some(ext) => match ext {
+            "html"|"htm" => "text/html",
+            "txt" => "text/plain",
+            "css" => "text/css",
+            "js" => "application/javascript",
+            "png" => "image/png",
+            "jpg"|"jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            _ => "binary/octet-stream"
+        },
+        None => "binary/octet-stream"
+    }
 }
 
 fn trim_path(input: &str) -> &str {
@@ -19,7 +37,7 @@ impl TryFrom<String> for Request {
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            Ok(Request { method: method.to_string(), path: format!("./{}", trim_path(path).to_string()) })
+            Ok(Request { method: method.to_string(), path: format!(".{}", trim_path(path)) })
         } else {
             Err("Fail to get request method/path")
         }
@@ -70,7 +88,7 @@ fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
-    let request = match Request::try_from(request_line(&stream)) {
+    let mut request = match Request::try_from(request_line(&stream)) {
         Ok(request) => request,
         Err(_) => {
             eprintln!("Bad Request.");
@@ -78,14 +96,25 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         }
     };
 
-    println!("{} {}", request.method, request.path);
+    println!("{} {}", &request.method, &request.path);
 
-    let file = std::fs::File::open(&request.path);
+    let file = fs::File::open(&request.path);
     return match file {
         Ok(mut f) => {
+            let mut md = f.metadata().unwrap();
+            if md.is_dir() {
+                let index = Path::new(&request.path).join("index.html");
+                if index.exists() {
+                    f = fs::File::open(index).unwrap();
+                    md = f.metadata().unwrap();
+                    request.path = format!("{}/index.html", &request.path);
+                } else {
+                    panic!("Listing directory is not implemented yet...");
+                }
+            }
             stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
-            stream.write_all(b"Content-Type: text/plain\n").unwrap();
-            stream.write_all(format!("Content-Length: {}\r\n\r\n", f.metadata().unwrap().len()).as_bytes()).unwrap();
+            stream.write_all(format!("Content-Type: {}\n", mime_type(&request.path)).as_bytes()).unwrap();
+            stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes()).unwrap();
             send(&mut f, &mut stream)
         }
         Err(_) => http_404(&mut stream),
@@ -95,6 +124,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
 fn main() {
     let listener = TcpListener::bind("0.0.0.0:80").expect("Couldn't bind.");
     println!("Listening on :80\n");
+    println!("Root: {:?}", Path::new(".").canonicalize().unwrap());
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
