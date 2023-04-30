@@ -98,6 +98,11 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
 
     println!("{} {}", &request.method, &request.path);
 
+    if &request.method != "GET" {
+        println!("Requested Http Method: {} is not supported.", &request.method);
+        return http_404(&mut stream);
+    }
+
     let file = fs::File::open(&request.path);
     return match file {
         Ok(mut f) => {
