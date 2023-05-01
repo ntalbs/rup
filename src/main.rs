@@ -32,12 +32,31 @@ fn trim_path(input: &str) -> &str {
     input.split(|c| c == '#' || c == '?').next().unwrap()
 }
 
+fn decode_percent(s: &str) -> String {
+    let mut decoded = String::new();
+    let mut chars = s.chars();
+    let mut buf: Vec<u8> = Vec::new();
+    while let Some(ch) = chars.next() {
+        if ch == '%' {
+            let encoded = chars.next().unwrap().to_string() + &chars.next().unwrap().to_string();
+            buf.push(u8::from_str_radix(&encoded, 16).unwrap());
+        } else {
+            if decoded.len() != 0 {
+                decoded.push_str(&std::str::from_utf8(&buf).unwrap());
+                buf.clear();
+            }
+            decoded.push(ch);
+        }
+    }
+    decoded
+}
+
 impl TryFrom<String> for Request {
     type Error = &'static str;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            Ok(Request { method: method.to_string(), path: format!(".{}", trim_path(path)) })
+            Ok(Request { method: method.to_string(), path: format!(".{}", decode_percent(trim_path(path))) })
         } else {
             Err("Fail to get request method/path")
         }
