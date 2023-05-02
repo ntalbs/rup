@@ -145,10 +145,13 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
     }
 }
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
+    println!("Rup version: {VERSION}");
+    println!("Starting server: http://localhost");
     let listener = TcpListener::bind("0.0.0.0:80").expect("Couldn't bind.");
-    println!("Listening on :80\n");
-    println!("Root: {:?}", Path::new(".").canonicalize().unwrap());
+    println!("Serving {:?}", Path::new(".").canonicalize().unwrap());
+    println!("Hit Ctrl+C to exit.");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
