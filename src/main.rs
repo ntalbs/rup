@@ -133,7 +133,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
                     md = f.metadata().unwrap();
                     request.path = format!("{}/index.html", &request.path);
                 } else {
-                    panic!("Listing directory is not implemented yet...");
+                    todo!("Listing directory is not implemented yet...");
                 }
             }
             stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
