@@ -1,8 +1,12 @@
+pub(crate) mod colored;
+
 use std::io::{self, ErrorKind, Read, Write, BufReader, BufRead};
 use std::fs;
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::thread;
+
+use crate::colored::Colorize;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
 /// Though it has `method` field, only supported HTTP method will be GET, and
@@ -115,7 +119,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         }
     };
 
-    println!("{} {}", &request.method, &request.path);
+    println!("{} {}", &request.method.cyan(), &request.path.yellow());
 
     if &request.method != "GET" {
         println!("Requested Http Method: {} is not supported.", &request.method);
@@ -147,10 +151,10 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
-    println!("Rup version: {VERSION}");
-    println!("Starting server: http://localhost");
+    println!("{} {}", "Rup version:".yellow(), VERSION.green());
+    println!("{} {}", "Starting server".yellow(), "on http://localhost".green());
     let listener = TcpListener::bind("0.0.0.0:80").expect("Couldn't bind.");
-    println!("Serving {:?}", Path::new(".").canonicalize().unwrap());
+    println!("{} {}", "Serving ".yellow(), Path::new(".").canonicalize().unwrap().to_str().unwrap().green());
     println!("Hit Ctrl+C to exit.");
     for stream in listener.incoming() {
         match stream {
