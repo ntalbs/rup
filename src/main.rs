@@ -45,8 +45,8 @@ fn decode_percent(s: &str) -> String {
             let encoded = chars.next().unwrap().to_string() + &chars.next().unwrap().to_string();
             buf.push(u8::from_str_radix(&encoded, 16).unwrap());
         } else {
-            if decoded.len() != 0 {
-                decoded.push_str(&std::str::from_utf8(&buf).unwrap());
+            if !decoded.is_empty() {
+                decoded.push_str(std::str::from_utf8(&buf).unwrap());
                 buf.clear();
             }
             decoded.push(ch);
