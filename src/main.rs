@@ -137,30 +137,29 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     Ok(buf.len() as u64)
 }
 
-fn http_400(stream: &mut TcpStream) -> io::Result<u64> {
+fn http_400(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
     let body = b"Bad Request\n";
     stream.write_all(b"HTTP/1.1 400 Bad Request\n").unwrap();
     stream.write_all(b"Content-Type: text/plain\n").unwrap();
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
     stream.write_all(body).unwrap();
-    Err(io::Error::new(ErrorKind::Other, "400 Bad Request"))
+    Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "400 Bad Request".red(), reason)))
 }
 
-fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
+fn http_404(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
     let body = b"Not Found\n";
     stream.write_all(b"HTTP/1.1 404 Not Fount\n").unwrap();
     stream.write_all(b"Content-Type: text/plain\n").unwrap();
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
     stream.write_all(body).unwrap();
-    Err(io::Error::new(ErrorKind::Other, "404 Not Found"))
+    Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "404 Not Found".red(), reason)))
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
     let request = match Request::try_from(request_line(&stream)) {
         Ok(request) => request,
         Err(e) => {
-            eprintln!("Bad Request: {e}");
-            return http_400(&mut stream);
+            return http_400(&mut stream, e);
         }
     };
 
@@ -168,12 +167,12 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
 
     if &request.method != "GET" {
         println!("Requested Http Method: {} is not supported.", &request.method);
-        return http_404(&mut stream);
+        return http_404(&mut stream, &format!("Requested Http Method: {} is not supported.", &request.method));
     }
 
     let path = Path::new(&request.path);
     if !path.exists() {
-        http_404(&mut stream)
+        http_404(&mut stream, "Requested path does not exist.")
     } else if path.is_dir() {
         let index = path.join("index.html");
         if index.exists() {
@@ -199,7 +198,7 @@ fn main() {
                 thread::spawn(move || {
                     match handle_connection(stream) {
                         Ok(_) => {},
-                        Err(e) => eprintln!("{e:?}")
+                        Err(e) => eprintln!("{e}")
                     }
                 });
             }
