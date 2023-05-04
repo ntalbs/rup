@@ -77,19 +77,45 @@ fn request_line(mut stream: &TcpStream) -> String {
 }
 
 const BUF_SIZE: usize = 8 * 1024;
-fn send<R: ?Sized, W: ?Sized>(reader: &mut R, writer: &mut W) -> io::Result<u64> where R: Read, W: Write {
+fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
+    let mut f = fs::File::open(path)?;
+    let md = f.metadata()?;
+
+    stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
+    stream.write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes()).unwrap();
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes()).unwrap();
+
     let mut buf = [0; BUF_SIZE];
     let mut written = 0;
     loop {
-        let len = match reader.read(&mut buf) {
+        let len = match f.read(&mut buf) {
             Ok(0) => return Ok(written),
             Ok(len) => len,
             Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
             Err(e) => return Err(e),
         };
-        writer.write_all(&buf[..len])?;
+        stream.write_all(&buf[..len])?;
         written += len as u64;
     }
+}
+
+fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
+    let mut buf: Vec<u8> = Vec::new();
+    buf.write_all(b"<html><body><ol>")?;
+    let paths = fs::read_dir(path)?;
+    for f in paths {
+        let dir_entry = f?;
+        let href = dir_entry.path();
+        buf.write_all(format!("<li><a href=\"{}\">{}</a></li>", &href.to_str().unwrap()[1..], dir_entry.path().display()).as_bytes())?;
+    }
+    buf.write_all(b"</ol></body><html>")?;
+
+    stream.write_all(b"HTTP/1.1 200 OK\n")?;
+    stream.write_all(b"Content-Type: text/html\n")?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", buf.len()).as_bytes())?;
+    stream.write_all(&buf)?;
+
+    Ok(buf.len() as u64)
 }
 
 fn http_400(stream: &mut TcpStream) -> io::Result<u64> {
@@ -111,7 +137,7 @@ fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
-    let mut request = match Request::try_from(request_line(&stream)) {
+    let request = match Request::try_from(request_line(&stream)) {
         Ok(request) => request,
         Err(_) => {
             eprintln!("Bad Request.");
@@ -126,26 +152,18 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         return http_404(&mut stream);
     }
 
-    let file = fs::File::open(&request.path);
-    return match file {
-        Ok(mut f) => {
-            let mut md = f.metadata().unwrap();
-            if md.is_dir() {
-                let index = Path::new(&request.path).join("index.html");
-                if index.exists() {
-                    f = fs::File::open(index).unwrap();
-                    md = f.metadata().unwrap();
-                    request.path = format!("{}/index.html", &request.path);
-                } else {
-                    todo!("Listing directory is not implemented yet...");
-                }
-            }
-            stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
-            stream.write_all(format!("Content-Type: {}\n", mime_type(&request.path)).as_bytes()).unwrap();
-            stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes()).unwrap();
-            send(&mut f, &mut stream)
+    let path = Path::new(&request.path);
+    if !path.exists() {
+        http_404(&mut stream)
+    } else if path.is_dir() {
+        let index = path.join("index.html");
+        if index.exists() {
+            send_file(&mut stream, &index)
+        } else {
+            show_dir(&mut stream, path)
         }
-        Err(_) => http_404(&mut stream),
+    } else {
+        send_file(&mut stream, path)
     }
 }
 
