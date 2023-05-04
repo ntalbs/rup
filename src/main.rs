@@ -4,6 +4,7 @@ use std::io::{self, ErrorKind, Read, Write, BufReader, BufRead};
 use std::fs;
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
+use std::str::Chars;
 use std::thread;
 
 use crate::colored::Colorize;
@@ -36,14 +37,31 @@ fn trim_path(input: &str) -> &str {
     input.split(|c| c == '#' || c == '?').next().unwrap()
 }
 
-fn decode_percent(s: &str) -> String {
+fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {
+    const MALFORMED_URI: &str = "Malformed URI";
+    let digit1 = match chars.next() {
+        Some(c) => c,
+        None => return Err(MALFORMED_URI),
+    };
+    let digit2 = match chars.next() {
+        Some(c) => c,
+        None => return Err(MALFORMED_URI),
+    };
+    let encoded = format!("{digit1}{digit2}");
+    match u8::from_str_radix(&encoded, 16) {
+        Ok(xx) => Ok(xx),
+        Err(_) => Err(MALFORMED_URI),
+    }
+}
+
+fn decode_percent(s: &str) -> Result<String, &'static str> {
     let mut decoded = String::new();
     let mut chars = s.chars();
     let mut buf: Vec<u8> = Vec::new();
     while let Some(ch) = chars.next() {
         if ch == '%' {
-            let encoded = chars.next().unwrap().to_string() + &chars.next().unwrap().to_string();
-            buf.push(u8::from_str_radix(&encoded, 16).unwrap());
+            let hex = get_hex(&mut chars)?;
+            buf.push(hex);
         } else {
             if !decoded.is_empty() {
                 decoded.push_str(std::str::from_utf8(&buf).unwrap());
@@ -52,7 +70,7 @@ fn decode_percent(s: &str) -> String {
             decoded.push(ch);
         }
     }
-    decoded
+    Ok(decoded)
 }
 
 impl TryFrom<String> for Request {
@@ -60,7 +78,8 @@ impl TryFrom<String> for Request {
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            Ok(Request { method: method.to_string(), path: format!(".{}", decode_percent(trim_path(path))) })
+            let decoded = decode_percent(trim_path(path))?;
+            Ok(Request { method: method.to_string(), path: format!(".{}", decoded) })
         } else {
             Err("Fail to get request method/path")
         }
@@ -139,8 +158,8 @@ fn http_404(stream: &mut TcpStream) -> io::Result<u64> {
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
     let request = match Request::try_from(request_line(&stream)) {
         Ok(request) => request,
-        Err(_) => {
-            eprintln!("Bad Request.");
+        Err(e) => {
+            eprintln!("Bad Request: {e}");
             return http_400(&mut stream);
         }
     };
