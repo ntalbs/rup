@@ -139,19 +139,19 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
 
 fn http_400(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
     let body = b"Bad Request\n";
-    stream.write_all(b"HTTP/1.1 400 Bad Request\n").unwrap();
-    stream.write_all(b"Content-Type: text/plain\n").unwrap();
-    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
-    stream.write_all(body).unwrap();
+    stream.write_all(b"HTTP/1.1 400 Bad Request\n")?;
+    stream.write_all(b"Content-Type: text/plain\n")?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
+    stream.write_all(body)?;
     Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "400 Bad Request".red(), reason)))
 }
 
 fn http_404(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
     let body = b"Not Found\n";
-    stream.write_all(b"HTTP/1.1 404 Not Fount\n").unwrap();
-    stream.write_all(b"Content-Type: text/plain\n").unwrap();
-    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes()).unwrap();
-    stream.write_all(body).unwrap();
+    stream.write_all(b"HTTP/1.1 404 Not Fount\n")?;
+    stream.write_all(b"Content-Type: text/plain\n")?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
+    stream.write_all(body)?;
     Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "404 Not Found".red(), reason)))
 }
 
