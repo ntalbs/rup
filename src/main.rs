@@ -1,7 +1,7 @@
 pub(crate) mod colored;
 
-use std::io::{self, ErrorKind, Read, Write, BufReader, BufRead};
 use std::fs;
+use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::str::Chars;
@@ -20,16 +20,16 @@ struct Request {
 fn mime_type(path: &str) -> &'static str {
     match path.split('.').last() {
         Some(ext) => match ext {
-            "html"|"htm" => "text/html",
+            "html" | "htm" => "text/html",
             "txt" => "text/plain",
             "css" => "text/css",
             "js" => "application/javascript",
             "png" => "image/png",
-            "jpg"|"jpeg" => "image/jpeg",
+            "jpg" | "jpeg" => "image/jpeg",
             "gif" => "image/gif",
-            _ => "binary/octet-stream"
+            _ => "binary/octet-stream",
         },
-        None => "binary/octet-stream"
+        None => "binary/octet-stream",
     }
 }
 
@@ -79,7 +79,10 @@ impl TryFrom<String> for Request {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
             let decoded = decode_percent(trim_path(path))?;
-            Ok(Request { method: method.to_string(), path: format!(".{}", decoded) })
+            Ok(Request {
+                method: method.to_string(),
+                path: format!(".{}", decoded),
+            })
         } else {
             Err("Fail to get request method/path")
         }
@@ -101,8 +104,12 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let md = f.metadata()?;
 
     stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
-    stream.write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes()).unwrap();
-    stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes()).unwrap();
+    stream
+        .write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes())
+        .unwrap();
+    stream
+        .write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes())
+        .unwrap();
 
     let mut buf = [0; BUF_SIZE];
     let mut written = 0;
@@ -125,7 +132,14 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     for f in paths {
         let dir_entry = f?;
         let href = dir_entry.path();
-        buf.write_all(format!("<li><a href=\"{}\">{}</a></li>", &href.to_str().unwrap()[1..], dir_entry.path().display()).as_bytes())?;
+        buf.write_all(
+            format!(
+                "<li><a href=\"{}\">{}</a></li>",
+                &href.to_str().unwrap()[1..],
+                dir_entry.path().display()
+            )
+            .as_bytes(),
+        )?;
     }
     buf.write_all(b"</ol></body><html>")?;
 
@@ -137,24 +151,30 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     Ok(buf.len() as u64)
 }
 
-fn http_400(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
+fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
     let body_string = format!("Bad Request: {}\n", reason);
     let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 400 Bad Request\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "400 Bad Request".red(), reason)))
+    Err(io::Error::new(
+        ErrorKind::Other,
+        format!("{}: {}", "400 Bad Request".red(), reason),
+    ))
 }
 
-fn http_404(stream: &mut TcpStream, reason: & str) -> io::Result<u64> {
+fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
     let body_string = format!("Not Found: {}\n", reason);
     let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 404 Not Fount\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::new(ErrorKind::Other, format!("{}: {}", "404 Not Found".red(), reason)))
+    Err(io::Error::new(
+        ErrorKind::Other,
+        format!("{}: {}", "404 Not Found".red(), reason),
+    ))
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
@@ -168,8 +188,17 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
     println!("{} {}", &request.method.cyan(), &request.path.yellow());
 
     if &request.method != "GET" {
-        println!("Requested Http Method: {} is not supported.", &request.method);
-        return http_404(&mut stream, &format!("Requested Http Method: {} is not supported.", &request.method));
+        println!(
+            "Requested Http Method: {} is not supported.",
+            &request.method
+        );
+        return http_404(
+            &mut stream,
+            &format!(
+                "Requested Http Method: {} is not supported.",
+                &request.method
+            ),
+        );
     }
 
     let path = Path::new(&request.path);
@@ -190,18 +219,29 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     println!("{} {}", "Rup version:".yellow(), VERSION.green());
-    println!("{} {}", "Starting server".yellow(), "on http://localhost".green());
+    println!(
+        "{} {}",
+        "Starting server".yellow(),
+        "on http://localhost".green()
+    );
     let listener = TcpListener::bind("0.0.0.0:80").expect("Couldn't bind.");
-    println!("{} {}", "Serving ".yellow(), Path::new(".").canonicalize().unwrap().to_str().unwrap().green());
+    println!(
+        "{} {}",
+        "Serving ".yellow(),
+        Path::new(".")
+            .canonicalize()
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .green()
+    );
     println!("Hit Ctrl+C to exit.");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                thread::spawn(move || {
-                    match handle_connection(stream) {
-                        Ok(_) => {},
-                        Err(e) => eprintln!("{e}")
-                    }
+                thread::spawn(move || match handle_connection(stream) {
+                    Ok(_) => {}
+                    Err(e) => eprintln!("{e}"),
                 });
             }
             Err(e) => {
