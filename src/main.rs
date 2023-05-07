@@ -128,6 +128,21 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
 fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(b"<html><body><ol>")?;
+
+    if let Some(parent) = path.parent() {
+        match parent.to_str().unwrap() {
+            "" => {}
+            "." => buf.write_all(b"<li><a href=\"/\">..</a></li>")?,
+            _ => buf.write_all(
+                format!(
+                    "<li><a href=\"{}\">..</a></li>",
+                    &parent.to_str().unwrap()[1..]
+                )
+                .as_bytes(),
+            )?,
+        }
+    }
+
     let paths = fs::read_dir(path)?;
     for f in paths {
         let dir_entry = f?;
