@@ -151,7 +151,7 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
             format!(
                 "<li><a href=\"{}\">{}</a></li>",
                 &href.to_str().unwrap()[1..],
-                dir_entry.path().display()
+                dir_entry.path().file_name().unwrap().to_str().unwrap()
             )
             .as_bytes(),
         )?;
