@@ -127,7 +127,13 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
 
 fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let mut buf: Vec<u8> = Vec::new();
-    buf.write_all(b"<html><body><ol>")?;
+    buf.write_all(
+        format!(
+            "<html><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
+            path.display()
+        )
+        .as_bytes(),
+    )?;
 
     if let Some(parent) = path.parent() {
         match parent.to_str().unwrap() {
