@@ -188,7 +188,7 @@ fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
 fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
     let body_string = format!("Not Found: {}\n", reason);
     let body = body_string.as_bytes();
-    stream.write_all(b"HTTP/1.1 404 Not Fount\n")?;
+    stream.write_all(b"HTTP/1.1 404 Not Found\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
