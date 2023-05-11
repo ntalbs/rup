@@ -81,7 +81,7 @@ impl TryFrom<String> for Request {
             let decoded = decode_percent(trim_path(path))?;
             Ok(Request {
                 method: method.to_string(),
-                path: format!(".{}", decoded),
+                path: format!("{}", decoded),
             })
         } else {
             Err("Fail to get request method/path")
@@ -130,7 +130,7 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     buf.write_all(
         format!(
             "<html><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
-            path.display()
+            &path.to_str().unwrap()[1..]
         )
         .as_bytes(),
     )?;
@@ -222,7 +222,9 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         );
     }
 
-    let path = Path::new(&request.path);
+    let temp = format!(".{}", &request.path);
+    let path = Path::new(&temp);
+
     if !path.exists() {
         http_404(&mut stream, "Requested path does not exist.")
     } else if path.is_dir() {
@@ -230,10 +232,10 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         if index.exists() {
             send_file(&mut stream, &index)
         } else {
-            show_dir(&mut stream, path)
+            show_dir(&mut stream, &path)
         }
     } else {
-        send_file(&mut stream, path)
+        send_file(&mut stream, &path)
     }
 }
 
