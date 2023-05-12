@@ -102,11 +102,11 @@ const BUF_SIZE: usize = 8 * 1024;
 fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let mut f = fs::File::open(path)?;
     let md = f.metadata()?;
+    let mime_type = mime_type(path.to_str().unwrap());
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
-    stream
-        .write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes())?;
+    stream.write_all(format!("Content-Type: {}\n", mime_type).as_bytes())?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes())?;
 
     let mut buf = [0; BUF_SIZE];
