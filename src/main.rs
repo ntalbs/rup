@@ -103,14 +103,11 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let mut f = fs::File::open(path)?;
     let md = f.metadata()?;
 
-    stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
+    stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
     stream
-        .write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes())
-        .unwrap();
-    stream
-        .write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes())
-        .unwrap();
+        .write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes())?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes())?;
 
     let mut buf = [0; BUF_SIZE];
     let mut written = 0;
