@@ -81,7 +81,7 @@ impl TryFrom<String> for Request {
             let decoded = decode_percent(trim_path(path))?;
             Ok(Request {
                 method: method.to_string(),
-                path: format!("{}", decoded),
+                path: decoded,
             })
         } else {
             Err("Fail to get request method/path")
