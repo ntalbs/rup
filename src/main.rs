@@ -104,6 +104,7 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     let md = f.metadata()?;
 
     stream.write_all(b"HTTP/1.1 200 OK\n").unwrap();
+    stream.write_all(b"Cache-Control: max-age=3600\n")?;
     stream
         .write_all(format!("Content-Type: {}\n", mime_type(path.to_str().unwrap())).as_bytes())
         .unwrap();
