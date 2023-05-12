@@ -232,10 +232,10 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
         if index.exists() {
             send_file(&mut stream, &index)
         } else {
-            show_dir(&mut stream, &path)
+            show_dir(&mut stream, path)
         }
     } else {
-        send_file(&mut stream, &path)
+        send_file(&mut stream, path)
     }
 }
 
