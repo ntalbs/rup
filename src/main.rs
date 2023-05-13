@@ -1,6 +1,6 @@
 pub(crate) mod colored;
 
-use std::fs;
+use std::{fs, str};
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
@@ -64,7 +64,7 @@ fn decode_percent(s: &str) -> Result<String, &'static str> {
             buf.push(hex);
         } else {
             if !decoded.is_empty() {
-                decoded.push_str(std::str::from_utf8(&buf).unwrap());
+                decoded.push_str(str::from_utf8(&buf).unwrap());
                 buf.clear();
             }
             decoded.push(ch);
