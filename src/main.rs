@@ -1,11 +1,11 @@
 pub(crate) mod colored;
 
-use std::{fs, str};
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 use std::str::Chars;
 use std::thread;
+use std::{fs, str};
 
 use crate::colored::Colorize;
 
@@ -99,7 +99,7 @@ fn request_line(mut stream: &TcpStream) -> String {
 }
 
 const BUF_SIZE: usize = 8 * 1024;
-fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
+fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     let mut f = fs::File::open(path)?;
     let md = f.metadata()?;
     let mime_type = mime_type(path.to_str().unwrap());
@@ -119,11 +119,11 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
             Err(e) => return Err(e),
         };
         stream.write_all(&buf[..len])?;
-        written += len as u64;
+        written += len;
     }
 }
 
-fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
+fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(
         format!(
@@ -167,10 +167,10 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<u64> {
     stream.write_all(format!("Content-Length: {}\r\n\r\n", buf.len()).as_bytes())?;
     stream.write_all(&buf)?;
 
-    Ok(buf.len() as u64)
+    Ok(buf.len())
 }
 
-fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
+fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
     let body_string = format!("Bad Request: {}\n", reason);
     let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 400 Bad Request\n")?;
@@ -183,7 +183,7 @@ fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
     ))
 }
 
-fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
+fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
     let body_string = format!("Not Found: {}\n", reason);
     let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 404 Not Found\n")?;
@@ -196,7 +196,7 @@ fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<u64> {
     ))
 }
 
-fn handle_connection(mut stream: TcpStream) -> io::Result<u64> {
+fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
     let request = match Request::try_from(request_line(&stream)) {
         Ok(request) => request,
         Err(e) => {
