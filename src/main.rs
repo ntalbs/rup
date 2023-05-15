@@ -17,8 +17,8 @@ struct Request {
     path: String,
 }
 
-fn mime_type(path: &str) -> &'static str {
-    match path.split('.').last() {
+fn mime_type(path: &Path) -> &'static str {
+    match path.extension().and_then(|s| s.to_str()) {
         Some(ext) => match ext {
             "html" | "htm" => "text/html",
             "txt" => "text/plain",
@@ -102,7 +102,7 @@ const BUF_SIZE: usize = 8 * 1024;
 fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     let mut f = fs::File::open(path)?;
     let md = f.metadata()?;
-    let mime_type = mime_type(path.to_str().unwrap());
+    let mime_type = mime_type(path);
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
