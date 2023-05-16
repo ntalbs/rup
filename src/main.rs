@@ -21,7 +21,7 @@ fn mime_type(path: &Path) -> &'static str {
     match path.extension().and_then(|s| s.to_str()) {
         Some(ext) => match ext {
             "html" | "htm" => "text/html",
-            "txt" => "text/plain",
+            "txt" | "md" | "rs" | "toml" => "text/plain",
             "css" => "text/css",
             "js" => "application/javascript",
             "png" => "image/png",
