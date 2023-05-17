@@ -1,4 +1,4 @@
-pub(crate) mod colored;
+mod colored;
 
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
