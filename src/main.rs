@@ -1,4 +1,5 @@
 mod colored;
+mod mime;
 
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -8,6 +9,7 @@ use std::thread;
 use std::{fs, str};
 
 use crate::colored::Colorize;
+use crate::mime::mime;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
 /// Though it has `method` field, only supported HTTP method will be GET, and
@@ -18,19 +20,7 @@ struct Request {
 }
 
 fn mime_type(path: &Path) -> &'static str {
-    match path.extension().and_then(|s| s.to_str()) {
-        Some(ext) => match ext {
-            "html" | "htm" => "text/html",
-            "txt" | "md" | "rs" | "toml" => "text/plain",
-            "css" => "text/css",
-            "js" => "application/javascript",
-            "png" => "image/png",
-            "jpg" | "jpeg" => "image/jpeg",
-            "gif" => "image/gif",
-            _ => "binary/octet-stream",
-        },
-        None => "binary/octet-stream",
-    }
+    mime(path.extension().and_then(|s| s.to_str()).unwrap_or(""))
 }
 
 fn trim_path(input: &str) -> &str {
