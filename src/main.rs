@@ -79,13 +79,10 @@ impl TryFrom<String> for Request {
     }
 }
 
-fn request_line(mut stream: &TcpStream) -> String {
-    BufReader::new(&mut stream)
-        .lines()
-        .map(|result| result.unwrap())
-        .take(1) // read only first line
-        .next()
-        .unwrap()
+fn request_line(mut stream: &TcpStream) -> io::Result<String> {
+    let mut buf = String::new();
+    BufReader::new(&mut stream).read_line(&mut buf)?;
+    Ok(buf)
 }
 
 const BUF_SIZE: usize = 8 * 1024;
@@ -187,7 +184,13 @@ fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
-    let request = match Request::try_from(request_line(&stream)) {
+    let request_line = match request_line(&mut stream) {
+        Ok(req_line) => req_line,
+        Err(e) => {
+            return http_400(&mut stream, &e.to_string());
+        }
+    };
+    let request = match Request::try_from(request_line) {
         Ok(request) => request,
         Err(e) => {
             return http_400(&mut stream, e);
