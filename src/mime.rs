@@ -1554,3 +1554,11 @@ pub(crate) fn mime(ext: &str) -> &'static str {
         Err(_) => "binary/octet-stream",
     }
 }
+
+#[test]
+fn test_mime_types_sorted() {
+    fn is_sorted<T>(data: &[T]) -> bool where T: Ord {
+        data.windows(2).all(|w| w[0] <= w[1])
+    }
+    assert!(is_sorted(MIME_TYPES));
+}
