@@ -184,7 +184,7 @@ fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
-    let request_line = match request_line(&mut stream) {
+    let request_line = match request_line(&stream) {
         Ok(req_line) => req_line,
         Err(e) => {
             return http_400(&mut stream, &e.to_string());
