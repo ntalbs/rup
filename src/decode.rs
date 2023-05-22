@@ -26,12 +26,28 @@ pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
             let hex = get_hex(&mut chars)?;
             buf.push(hex);
         } else {
-            if !decoded.is_empty() {
+            if !buf.is_empty() {
                 decoded.push_str(from_utf8(&buf).unwrap());
                 buf.clear();
             }
             decoded.push(ch);
         }
     }
+
+    if !buf.is_empty() {
+        decoded.push_str(from_utf8(&buf).unwrap());
+        buf.clear();
+    }
+
     Ok(decoded)
+}
+
+#[test]
+fn test_decode() -> Result<(), &'static str> {
+    assert_eq!(decode_percent("hello%20world")?, "hello world");
+    assert_eq!(decode_percent("%ec%95%84%eb%a7%88%ec%a1%b4")?, "아마존");
+    assert_eq!(decode_percent("/%ec%95%84%eb%a7%88%ec%a1%b4")?, "/아마존");
+    assert_eq!(decode_percent("%ec%95%84%eb%a7%88%ec%a1%b4/")?, "아마존/");
+    assert_eq!(decode_percent("/%ec%95%84%eb%a7%88%ec%a1%b4/")?, "/아마존/");
+    Ok(())
 }
