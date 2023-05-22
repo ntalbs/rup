@@ -1565,3 +1565,14 @@ fn test_mime_types_sorted() {
     }
     assert!(is_sorted(MIME_TYPES));
 }
+
+#[test]
+fn test_mime_types_basics() {
+    assert_eq!(mime("html"), "text/html");
+    assert_eq!(mime("css"), "text/css");
+    assert_eq!(mime("js"), "application/javascript");
+    assert_eq!(mime("gif"), "image/gif");
+    assert_eq!(mime("jpg"), "image/jpeg");
+    assert_eq!(mime("jpeg"), "image/jpeg");
+    assert_eq!(mime("png"), "image/png");
+}
