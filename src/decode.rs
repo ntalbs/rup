@@ -21,24 +21,28 @@ pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
     let mut decoded = String::new();
     let mut chars = s.chars();
     let mut buf: Vec<u8> = Vec::new();
-    while let Some(ch) = chars.next() {
-        if ch == '%' {
-            let hex = get_hex(&mut chars)?;
-            buf.push(hex);
-        } else {
-            if !buf.is_empty() {
-                decoded.push_str(from_utf8(&buf).unwrap());
-                buf.clear();
-            }
-            decoded.push(ch);
+    loop {
+        match chars.next() {
+            Some('%') => {
+                let hex = get_hex(&mut chars)?;
+                buf.push(hex);
+            },
+            Some(ch) => {
+                if !buf.is_empty() {
+                    decoded.push_str(from_utf8(&buf).unwrap());
+                    buf.clear();
+                }
+                decoded.push(ch);
+            },
+            None => {
+                if !buf.is_empty() {
+                    decoded.push_str(from_utf8(&buf).unwrap());
+                    buf.clear();
+                }
+                break;
+            },
         }
     }
-
-    if !buf.is_empty() {
-        decoded.push_str(from_utf8(&buf).unwrap());
-        buf.clear();
-    }
-
     Ok(decoded)
 }
 
