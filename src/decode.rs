@@ -18,6 +18,13 @@ fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {
 }
 
 pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
+    fn flush_buf(buf: &mut Vec<u8>, dest: &mut String) {
+        if !buf.is_empty() {
+            dest.push_str(from_utf8(&buf).unwrap());
+            buf.clear();
+        }
+    }
+
     let mut decoded = String::new();
     let mut chars = s.chars();
     let mut buf: Vec<u8> = Vec::new();
@@ -28,17 +35,11 @@ pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
                 buf.push(hex);
             },
             Some(ch) => {
-                if !buf.is_empty() {
-                    decoded.push_str(from_utf8(&buf).unwrap());
-                    buf.clear();
-                }
+                flush_buf(&mut buf, &mut decoded);
                 decoded.push(ch);
             },
             None => {
-                if !buf.is_empty() {
-                    decoded.push_str(from_utf8(&buf).unwrap());
-                    buf.clear();
-                }
+                flush_buf(&mut buf, &mut decoded);
                 break;
             },
         }
