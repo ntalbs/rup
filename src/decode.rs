@@ -33,15 +33,15 @@ pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
             Some('%') => {
                 let hex = get_hex(&mut chars)?;
                 buf.push(hex);
-            },
+            }
             Some(ch) => {
                 flush_buf(&mut buf, &mut decoded);
                 decoded.push(ch);
-            },
+            }
             None => {
                 flush_buf(&mut buf, &mut decoded);
                 break;
-            },
+            }
         }
     }
     Ok(decoded)
