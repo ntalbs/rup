@@ -20,7 +20,7 @@ fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {
 pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
     fn flush_buf(buf: &mut Vec<u8>, dest: &mut String) {
         if !buf.is_empty() {
-            dest.push_str(from_utf8(&buf).unwrap());
+            dest.push_str(from_utf8(buf).unwrap());
             buf.clear();
         }
     }
