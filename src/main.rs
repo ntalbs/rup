@@ -1,3 +1,4 @@
+mod cli;
 mod colored;
 mod decode;
 mod mime;
@@ -5,9 +6,10 @@ mod mime;
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
-use std::thread;
+use std::{env, thread};
 use std::{fs, str};
 
+use crate::cli::Args;
 use crate::colored::Colorize;
 use crate::decode::decode_percent;
 use crate::mime::mime;
@@ -197,13 +199,19 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    let args = Args::parse(&args);
+    let port = args.port;
+
     println!("{} {}", "Rup version:".yellow(), VERSION.green());
     println!(
-        "{} {}",
+        "{} {}:{}",
         "Starting server".yellow(),
-        "on http://localhost".green()
+        "on http://localhost".green(),
+        port
     );
-    let listener = TcpListener::bind("0.0.0.0:80").expect("Couldn't bind.");
+
+    let listener = TcpListener::bind(format!("0.0.0.0:{port}")).expect("Couldn't bind.");
     println!(
         "{} {}",
         "Serving ".yellow(),
