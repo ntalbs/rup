@@ -1,4 +1,4 @@
-pub(crate) trait Colorize {
+pub(crate) trait Color {
     fn red(&self) -> String;
     fn green(&self) -> String;
     fn yellow(&self) -> String;
@@ -6,7 +6,7 @@ pub(crate) trait Colorize {
     fn cyan(&self) -> String;
 }
 
-impl Colorize for str {
+impl Color for str {
     fn red(&self) -> String {
         format!("\x1b[31m{self}\x1b[0m")
     }

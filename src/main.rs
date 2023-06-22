@@ -1,5 +1,5 @@
 mod cli;
-mod colored;
+mod color;
 mod decode;
 mod mime;
 
@@ -10,7 +10,7 @@ use std::{env, thread};
 use std::{fs, str};
 
 use crate::cli::Args;
-use crate::colored::Colorize;
+use crate::color::Color;
 use crate::decode::decode_percent;
 use crate::mime::mime;
 

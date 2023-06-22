@@ -1,6 +1,6 @@
 use std::{collections::HashMap, process::exit};
 
-use crate::colored::Colorize;
+use crate::color::Color;
 
 pub(crate) struct Args {
     pub port: u16,
