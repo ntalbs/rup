@@ -31,10 +31,12 @@ fn show_help() {
     print_opt("-V, --version", "", "Print version information");
 }
 
+#[derive(Debug, PartialEq)]
 pub(crate) struct Args {
     pub port: u16,
 }
 
+#[derive(Debug, PartialEq)]
 enum ParseResult {
     Args(Args),
     Help,
@@ -153,4 +155,24 @@ fn test_port() {
     let args = vec!["rup".to_string(), "--port".to_string(), "1024".to_string()];
     let args = Args::parse(&args);
     assert_eq!(args.port, 1024);
+}
+
+#[test]
+fn test_version() {
+    let args = vec!["--version".to_string(), "-p".to_string()];
+    if let Ok(result) = ArgsParser::new(&args).parse() {
+        assert_eq!(result, ParseResult::Version);
+    } else {
+        assert!(false);
+    }
+}
+
+#[test]
+fn test_help() {
+    let args = vec!["--help".to_string(), "-p".to_string()];
+    if let Ok(result) = ArgsParser::new(&args).parse() {
+        assert_eq!(result, ParseResult::Help);
+    } else {
+        assert!(false);
+    }
 }
