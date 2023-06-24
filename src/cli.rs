@@ -16,10 +16,9 @@ fn show_help() {
     println!("A simple command-line static http server");
     println!();
     println!(
-        "{}: {} {}",
+        "{}: {} [OPTIONS]",
         "Usage".underline().bright_white(),
         "rup".bright_white(),
-        "[OPTIONS]"
     );
     println!();
     println!("{}:", "Options".underline().bright_white());
@@ -46,52 +45,85 @@ struct ParseError {
     reason: String,
 }
 
-impl Args {
-    fn parse_internal(args: &[String]) -> Result<ParseResult, ParseError> {
-        let mut ret = Self { port: DEFAULT_PORT };
-        let mut args_iter = args.iter();
+struct ArgsParser<'a> {
+    tokens: &'a [String],
+    current: usize,
+}
 
-        loop {
-            if let Some(arg) = args_iter.next() {
-                match arg.as_str() {
-                    "-p" | "--port" => {
-                        if let Some(port_str) = args_iter.next() {
-                            ret.port = match port_str.parse() {
-                                Ok(port) => port,
-                                Err(e) => {
-                                    let reason = format!(
-                                        "Invalid value '{}' for '--port <PORT>': {}",
-                                        port_str, e
-                                    );
-                                    return Err(ParseError { reason })
-                                }
-                            }
-                        } else {
-                            let reason = "error: The argument '--port <PORT>' requires a value but none was supplied".to_string();
-                            return Err(ParseError { reason });
-                        }
-                    }
-                    "-V" | "--version" => {
-                        return Ok(ParseResult::Version);
-                    }
-                    "-h" | "--help" => {
-                        return Ok(ParseResult::Help);
-                    }
-                    _ => {
-                        let mesg = format!("error: Found argument '{}' which wasn't expected, or isn't valid in this context", arg);
-                        return Err(ParseError { reason: mesg });
-                    }
-                }
-            } else {
-                return Ok(ParseResult::Args(ret));
-            }
-        }
+impl<'a> ArgsParser<'a> {
+    fn new(tokens: &'a [String]) -> Self {
+        Self { tokens, current: 0 }
     }
 
+    fn advance(&mut self) -> &String {
+        if !self.is_at_end() {
+            self.current += 1;
+        }
+        self.previous()
+    }
+
+    fn is_at_end(&self) -> bool {
+        self.current >= self.tokens.len()
+    }
+
+    fn peek(&self) -> &String {
+        &self.tokens[self.current]
+    }
+
+    fn previous(&self) -> &String {
+        &self.tokens[self.current - 1]
+    }
+
+    fn parse(&mut self) -> Result<ParseResult, ParseError> {
+        let mut ret = Args { port: DEFAULT_PORT };
+
+        while !self.is_at_end() {
+            let token = self.advance();
+            match token.as_str() {
+                "-p" | "--port" => {
+                    let port_str = self.peek();
+                    if !port_str.starts_with('-') {
+                        ret.port = match port_str.parse() {
+                            Ok(port) => port,
+                            Err(e) => {
+                                let reason = format!(
+                                    "Invalid value '{}' for '{}': {}",
+                                    port_str.yellow(),
+                                    "--port <PORT>".yellow(),
+                                    e
+                                );
+                                return Err(ParseError { reason });
+                            }
+                        };
+                        self.advance();
+                    } else {
+                        let reason = format!("{}: The argument '{}' requires a value but none was supplied", "error".bright_red(), "--port <PORT>".yellow());
+                        return Err(ParseError { reason });
+                    }
+                }
+                "-V" | "--version" => {
+                    return Ok(ParseResult::Version);
+                }
+                "-h" | "--help" => {
+                    return Ok(ParseResult::Help);
+                }
+                _ => {
+                    let reason = format!("{}: Found argument '{}' which wasn't expected, or isn't valid in this context", "error".bright_red(), token.yellow());
+                    return Err(ParseError { reason });
+                }
+            }
+        }
+        Ok(ParseResult::Args(ret))
+    }
+}
+
+impl Args {
     pub(crate) fn parse(args: &[String]) -> Self {
-        match Self::parse_internal(&args[1..]) {
+        let mut arg_parser = ArgsParser::new(&args[1..]);
+
+        match arg_parser.parse() {
             Ok(r) => match r {
-                ParseResult::Args(a) => return a,
+                ParseResult::Args(a) => a,
                 ParseResult::Help => {
                     show_help();
                     exit(0);
