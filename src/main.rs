@@ -197,13 +197,12 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
     }
 }
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     let args: Vec<String> = env::args().collect();
     let args = Args::parse(&args);
     let port = args.port;
 
-    println!("{} {}", "Rup version:".yellow(), VERSION.green());
+    println!("{} {}", "Rup version:".yellow(), cli::VERSION.green());
     println!(
         "{} {}:{}",
         "Starting server".yellow(),

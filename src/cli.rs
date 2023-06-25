@@ -2,7 +2,7 @@ use std::process::exit;
 
 use crate::color::{Color, Style};
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_PORT: u16 = 3000;
 
 fn show_version() {
