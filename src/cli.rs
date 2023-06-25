@@ -99,7 +99,11 @@ impl<'a> ArgsParser<'a> {
                         };
                         self.advance();
                     } else {
-                        let reason = format!("{}: The argument '{}' requires a value but none was supplied", "error".bright_red(), "--port <PORT>".yellow());
+                        let reason = format!(
+                            "{}: The argument '{}' requires a value but none was supplied",
+                            "error".bright_red(),
+                            "--port <PORT>".yellow()
+                        );
                         return Err(ParseError { reason });
                     }
                 }
