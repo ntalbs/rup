@@ -221,7 +221,7 @@ fn main() {
             .unwrap()
             .green()
     );
-    println!("Hit Ctrl+C to exit.");
+    println!("Hit Ctrl+C to exit.\n");
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
