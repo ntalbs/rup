@@ -1,7 +1,7 @@
 use std::str::{from_utf8, Chars};
 
+const MALFORMED_URI: &str = "Malformed URI";
 fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {
-    const MALFORMED_URI: &str = "Malformed URI";
     let digit1 = match chars.next() {
         Some(c) => c,
         None => return Err(MALFORMED_URI),
@@ -55,4 +55,10 @@ fn test_decode() -> Result<(), &'static str> {
     assert_eq!(decode_percent("%ec%95%84%eb%a7%88%ec%a1%b4/")?, "아마존/");
     assert_eq!(decode_percent("/%ec%95%84%eb%a7%88%ec%a1%b4/")?, "/아마존/");
     Ok(())
+}
+
+#[test]
+fn test_invalid() {
+    assert_eq!(decode_percent("%hello").unwrap_err(), MALFORMED_URI);
+    assert_eq!(decode_percent("%1%1%3").unwrap_err(), MALFORMED_URI);
 }
