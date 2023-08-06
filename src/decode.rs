@@ -17,16 +17,21 @@ fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {
     }
 }
 
-pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
-    fn flush_buf(buf: &mut Vec<u8>, dest: &mut String) {
+pub(crate) fn decode_percent(input: &str) -> Result<String, &'static str> {
+    fn flush_buf(buf: &mut Vec<u8>, dest: &mut String) -> Result <(), &'static str> {
         if !buf.is_empty() {
-            dest.push_str(from_utf8(buf).unwrap());
+            let ch = match from_utf8(buf) {
+                Ok(s) => s,
+                Err(_) => return Err(MALFORMED_URI),
+            };
+            dest.push_str(ch);
             buf.clear();
         }
+        Ok(())
     }
 
     let mut decoded = String::new();
-    let mut chars = s.chars();
+    let mut chars = input.chars();
     let mut buf: Vec<u8> = Vec::new();
     loop {
         match chars.next() {
@@ -35,11 +40,11 @@ pub(crate) fn decode_percent(s: &str) -> Result<String, &'static str> {
                 buf.push(hex);
             }
             Some(ch) => {
-                flush_buf(&mut buf, &mut decoded);
+                flush_buf(&mut buf, &mut decoded)?;
                 decoded.push(ch);
             }
             None => {
-                flush_buf(&mut buf, &mut decoded);
+                flush_buf(&mut buf, &mut decoded)?;
                 break;
             }
         }
@@ -61,4 +66,5 @@ fn test_decode() -> Result<(), &'static str> {
 fn test_invalid() {
     assert_eq!(decode_percent("%hello").unwrap_err(), MALFORMED_URI);
     assert_eq!(decode_percent("%1%1%3").unwrap_err(), MALFORMED_URI);
+    assert_eq!(decode_percent("%ff").unwrap_err(), MALFORMED_URI);
 }
