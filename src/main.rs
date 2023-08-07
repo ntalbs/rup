@@ -150,6 +150,20 @@ fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
     ))
 }
 
+fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
+    let body_string = "405 Method Not Allowed\n";
+    let body = body_string.as_bytes();
+    stream.write_all(b"HTTP/1.1 405 Method Not Allowed\n")?;
+    stream.write_all(b"Allow: GET\n")?;
+    stream.write_all(b"Content-Type: text/plain\n")?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
+    stream.write_all(body)?;
+    Err(io::Error::new(
+        ErrorKind::Other,
+        body_string,
+    ))
+}
+
 fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
     let request_line = match request_line(&stream) {
         Ok(req_line) => req_line,
@@ -171,13 +185,7 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
             "Requested Http Method: {} is not supported.",
             &request.method
         );
-        return http_404(
-            &mut stream,
-            &format!(
-                "Requested Http Method: {} is not supported.",
-                &request.method
-            ),
-        );
+        return http_405(&mut stream);
     }
 
     let temp = format!(".{}", &request.path);
