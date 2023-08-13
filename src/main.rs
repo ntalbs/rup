@@ -3,6 +3,7 @@ mod color;
 mod decode;
 mod mime;
 
+use std::fs::File;
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
@@ -57,7 +58,7 @@ trait WriteFile {
 }
 
 impl WriteFile for TcpStream {
-    fn write_file(&mut self, mut file: fs::File) -> io::Result<usize> {
+    fn write_file(&mut self, mut file: File) -> io::Result<usize> {
         const BUF_SIZE: usize = 8 * 1024;
         let mut buf = [0; BUF_SIZE];
         let mut written = 0;
@@ -75,14 +76,14 @@ impl WriteFile for TcpStream {
 }
 
 fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
-    let f = fs::File::open(path)?;
+    let f = File::open(path)?;
     let md = f.metadata()?;
     let mime_type = mime_type(path);
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
     stream.write_all(format!("Content-Type: {}\n", mime_type).as_bytes())?;
-    stream.write_all(format!("Content-Length: {}\r\n\r\n", &md.len()).as_bytes())?;
+    stream.write_all(format!("Content-Length: {}\r\n\r\n", md.len()).as_bytes())?;
     stream.write_file(f)
 }
 
