@@ -148,12 +148,23 @@ fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
 }
 
 fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
-    let body_string = format!("Not Found: {}\n", reason);
-    let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 404 Not Found\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
-    stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
-    stream.write_all(body)?;
+
+    let path_404 = Path::new("./404.html");
+    if path_404.exists() {
+        let file_404 = File::open(path_404)?;
+        let content_length = &file_404.metadata()?.len();
+        stream.write_all(b"Content-Type: text/html\n")?;
+        stream.write_all(format!("Content-Length: {}\r\n\r\n", content_length).as_bytes())?;
+        stream.write_file(file_404)?;
+    } else {
+        let body_string = format!("Not Found: {}\n", reason);
+        let body = body_string.as_bytes();
+        stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
+        stream.write_all(body)?;
+    }
+
     Err(io::Error::new(
         ErrorKind::Other,
         format!("{}: {}", "404 Not Found".red(), reason),
