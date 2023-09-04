@@ -179,10 +179,7 @@ fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::new(
-        ErrorKind::Other,
-        body_string,
-    ))
+    Err(io::Error::new(ErrorKind::Other, body_string))
 }
 
 fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
