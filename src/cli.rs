@@ -1,4 +1,4 @@
-use std::process::exit;
+use std::{path::PathBuf, process::exit};
 
 use crate::color::{Color, Style};
 
@@ -27,6 +27,7 @@ fn show_help() {
         "<PORT>",
         &format!("[default: {DEFAULT_PORT}]"),
     );
+    print_opt("-r, --root", "<PATH>", "[default: \".\"]");
     print_opt("-h, --help", "", "Print help information");
     print_opt("-V, --version", "", "Print version information");
 }
@@ -34,6 +35,7 @@ fn show_help() {
 #[derive(Debug, PartialEq)]
 pub(crate) struct Args {
     pub port: u16,
+    pub path: PathBuf,
 }
 
 #[derive(Debug, PartialEq)]
@@ -77,7 +79,10 @@ impl<'a> ArgsParser<'a> {
     }
 
     fn parse(&mut self) -> Result<ParseResult, ParseError> {
-        let mut ret = Args { port: DEFAULT_PORT };
+        let mut ret = Args {
+            port: DEFAULT_PORT,
+            path: PathBuf::from("."),
+        };
 
         while !self.is_at_end() {
             let token = self.advance();
@@ -103,6 +108,30 @@ impl<'a> ArgsParser<'a> {
                             "{}: The argument '{}' requires a value but none was supplied",
                             "error".bright_red(),
                             "--port <PORT>".yellow()
+                        );
+                        return Err(ParseError { reason });
+                    }
+                }
+                "-r" | "--root" => {
+                    let root = self.peek();
+                    if !root.starts_with('-') {
+                        let path = PathBuf::from(root);
+                        if path.exists() {
+                            ret.path = path;
+                        } else {
+                            let reason = format!(
+                                "{}: The sepcified path '{}' does't exist.",
+                                "error".bright_red(),
+                                root.yellow()
+                            );
+                            return Err(ParseError { reason });
+                        }
+                        self.advance();
+                    } else {
+                        let reason = format!(
+                            "{}: The argument '{}' requires a value but none was supplied",
+                            "error".bright_red(),
+                            "--root <PATH>".yellow()
                         );
                         return Err(ParseError { reason });
                     }

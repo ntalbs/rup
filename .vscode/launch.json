@@ -19,26 +19,7 @@
                     "kind": "bin"
                 }
             },
-            "args": ["--port", "3456"],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'rup'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=rup",
-                    "--package=rup"
-                ],
-                "filter": {
-                    "name": "rup",
-                    "kind": "bin"
-                }
-            },
-            "args": ["--port", "3456"],
+            "args": ["-r", "/Users", "-p", "1234"],
             "cwd": "${workspaceFolder}"
         }
     ]

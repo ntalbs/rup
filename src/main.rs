@@ -6,7 +6,8 @@ mod mime;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::{env, thread};
 use std::{fs, str};
 
@@ -87,7 +88,7 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     stream.write_file(f)
 }
 
-fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
+fn show_dir(stream: &mut TcpStream, base: &str, path: PathBuf) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(
         format!(
@@ -97,32 +98,21 @@ fn show_dir(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
         .as_bytes(),
     )?;
 
-    if let Some(parent) = path.parent() {
-        match parent.to_str().unwrap() {
-            "" => {}
-            "." => buf.write_all(b"<li><a href=\"/\">..</a></li>")?,
-            _ => buf.write_all(
-                format!(
-                    "<li><a href=\"{}\">..</a></li>",
-                    &parent.to_str().unwrap()[1..]
-                )
-                .as_bytes(),
-            )?,
-        }
+    if base != path.to_str().unwrap() {
+        buf.write_all(format!("<li><a href=\"..\">..</a></li>",).as_bytes())?;
     }
 
     let paths = fs::read_dir(path)?;
     for f in paths {
         let dir_entry = f?;
-        let href = dir_entry.path();
-        buf.write_all(
-            format!(
-                "<li><a href=\"{}\">{}</a></li>",
-                &href.to_str().unwrap()[1..],
-                dir_entry.path().file_name().unwrap().to_str().unwrap()
-            )
-            .as_bytes(),
-        )?;
+        if let (Ok(href), Some(name)) = (
+            dir_entry.path().strip_prefix(base),
+            dir_entry.path().file_name(),
+        ) {
+            let href = href.to_str().unwrap();
+            let name = name.to_str().unwrap();
+            buf.write_all(format!("<li><a href=\"/{}\">{}</li>", href, name).as_bytes())?;
+        }
     }
     buf.write_all(b"</ol></body><html>")?;
 
@@ -182,7 +172,7 @@ fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
     Err(io::Error::new(ErrorKind::Other, body_string))
 }
 
-fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
+fn handle_connection(mut stream: TcpStream, base_path: Arc<PathBuf>) -> io::Result<usize> {
     let request_line = match request_line(&stream) {
         Ok(req_line) => req_line,
         Err(e) => {
@@ -206,8 +196,10 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
         return http_405(&mut stream);
     }
 
-    let temp = format!(".{}", &request.path);
-    let path = Path::new(&temp);
+    let mut path = (*base_path).clone();
+    if request.path != "/" {
+        path.push(&request.path[1..]);
+    }
 
     if !path.exists() {
         http_404(&mut stream, "Requested path does not exist.")
@@ -216,10 +208,11 @@ fn handle_connection(mut stream: TcpStream) -> io::Result<usize> {
         if index.exists() {
             send_file(&mut stream, &index)
         } else {
-            show_dir(&mut stream, path)
+            let base = base_path.to_str().unwrap();
+            show_dir(&mut stream, base, path)
         }
     } else {
-        send_file(&mut stream, path)
+        send_file(&mut stream, path.as_path())
     }
 }
 
@@ -240,18 +233,15 @@ fn main() {
     println!(
         "{} {}",
         "Serving ".yellow(),
-        Path::new(".")
-            .canonicalize()
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .green()
+        args.path.canonicalize().unwrap().to_str().unwrap().green()
     );
     println!("Hit Ctrl+C to exit.\n");
+    let path = Arc::new(args.path);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                thread::spawn(move || match handle_connection(stream) {
+                let path = path.clone();
+                thread::spawn(move || match handle_connection(stream, path) {
                     Ok(_) => {}
                     Err(e) => eprintln!("{e}"),
                 });

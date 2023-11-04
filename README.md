@@ -10,6 +10,7 @@ Usage: rup [OPTIONS]
 
 Options:
   -p, --port     <PORT>   [default: 3000]
+  -r, --root     <PATH>   [default: "."]
   -h, --help              Print help information
   -V, --version           Print version information
 ```
