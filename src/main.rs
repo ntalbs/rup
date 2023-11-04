@@ -88,11 +88,16 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     stream.write_file(f)
 }
 
+fn css() -> &'static str {
+    "<style>body { font-size: 1.2rem; line-height: 1.2; margin: 1rem; }</style>"
+}
+
 fn show_dir(stream: &mut TcpStream, base: &str, path: PathBuf) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(
         format!(
-            "<html><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
+            "<html><head>{}</head><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
+            css(),
             &path.to_str().unwrap()[1..]
         )
         .as_bytes(),
