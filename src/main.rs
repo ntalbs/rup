@@ -83,7 +83,11 @@ fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
-    stream.write_all(format!("Content-Type: {}\n", mime_type).as_bytes())?;
+    if mime_type.contains("text") {
+        stream.write_all(format!("Content-Type: {}; charset=utf-8\n", mime_type).as_bytes())?;
+    } else {
+        stream.write_all(format!("Content-Type: {}\n", mime_type).as_bytes())?;
+    }
     stream.write_all(format!("Content-Length: {}\r\n\r\n", md.len()).as_bytes())?;
     stream.write_file(f)
 }
@@ -122,7 +126,7 @@ fn show_dir(stream: &mut TcpStream, base: &str, path: PathBuf) -> io::Result<usi
     buf.write_all(b"</ol></body><html>")?;
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
-    stream.write_all(b"Content-Type: text/html\n")?;
+    stream.write_all(b"Content-Type: text/html; charset=utf-8\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", buf.len()).as_bytes())?;
     stream.write_all(&buf)?;
 
