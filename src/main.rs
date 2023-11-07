@@ -6,6 +6,7 @@ mod mime;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::process;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::{env, thread};
@@ -238,7 +239,11 @@ fn main() {
         port
     );
 
-    let listener = TcpListener::bind(format!("0.0.0.0:{port}")).expect("Couldn't bind.");
+    let listener = TcpListener::bind(format!("0.0.0.0:{port}")).unwrap_or_else(|e| {
+        eprintln!("{}", "Couldn't bind the port".bright_red());
+        eprintln!("{e}");
+        process::exit(1);
+    });
     println!(
         "{} {}",
         "Serving ".yellow(),
