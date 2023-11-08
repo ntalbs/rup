@@ -9,8 +9,8 @@ A simple command-line static http server
 Usage: rup [OPTIONS]
 
 Options:
-  -p, --port     <PORT>   [default: 3000]
-  -r, --root     <PATH>   [default: "."]
+  -p, --port     <PORT>   Port to use. [default: 3000]
+  -r, --root     <PATH>   Base directory. [default: "."]
   -h, --help              Print help information
   -V, --version           Print version information
 ```

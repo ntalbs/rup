@@ -25,9 +25,9 @@ fn show_help() {
     print_opt(
         "-p, --port",
         "<PORT>",
-        &format!("[default: {DEFAULT_PORT}]"),
+        &format!("Port to use. [default: {DEFAULT_PORT}]"),
     );
-    print_opt("-r, --root", "<PATH>", "[default: \".\"]");
+    print_opt("-r, --root", "<PATH>", "Base directory. [default: \".\"]");
     print_opt("-h, --help", "", "Print help information");
     print_opt("-V, --version", "", "Print version information");
 }
