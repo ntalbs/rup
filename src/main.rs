@@ -19,7 +19,7 @@ use crate::mime::mime;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
 /// Though it has `method` field, only supported HTTP method will be GET, and
-/// other methods in requests will cause error HTTP-404.
+/// other methods in requests will cause error HTTP-405.
 struct Request {
     method: String,
     path: String,
