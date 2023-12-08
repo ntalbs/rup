@@ -109,7 +109,7 @@ fn show_dir(stream: &mut TcpStream, base: &str, path: PathBuf) -> io::Result<usi
     )?;
 
     if base != path.to_str().unwrap() {
-        buf.write_all(format!("<li><a href=\"..\">..</a></li>",).as_bytes())?;
+        buf.write_all("<li><a href=\"..\">..</a></li>".as_bytes())?;
     }
 
     let paths = fs::read_dir(path)?;
