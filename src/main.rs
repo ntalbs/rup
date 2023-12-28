@@ -1,8 +1,8 @@
 mod cli;
-mod color;
 mod decode;
 mod mime;
 
+use colorust::Color;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::{TcpListener, TcpStream};
@@ -13,7 +13,6 @@ use std::{env, thread};
 use std::{fs, str};
 
 use crate::cli::Args;
-use crate::color::Color;
 use crate::decode::decode_percent;
 use crate::mime::mime;
 

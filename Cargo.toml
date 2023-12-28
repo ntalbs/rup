@@ -7,3 +7,4 @@ edition = "2021"
 panic = 'abort'
 
 [dependencies]
+colorust = { git = "https://github.com/ntalbs/colorust.git" }
