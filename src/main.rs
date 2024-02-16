@@ -2,19 +2,18 @@ mod cli;
 mod decode;
 mod mime;
 
+use crate::{cli::Args, decode::decode_percent, mime::mime};
 use colorust::Color;
-use std::fs::File;
-use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
-use std::net::{TcpListener, TcpStream};
-use std::path::{Path, PathBuf};
-use std::process;
-use std::sync::Arc;
-use std::{env, thread};
-use std::{fs, str};
-
-use crate::cli::Args;
-use crate::decode::decode_percent;
-use crate::mime::mime;
+use std::{
+    env, fs,
+    fs::File,
+    io::{self, BufRead, BufReader, ErrorKind, Read, Write},
+    net::{TcpListener, TcpStream},
+    path::{Path, PathBuf},
+    process, str,
+    sync::Arc,
+    thread,
+};
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
 /// Though it has `method` field, only supported HTTP method will be GET, and
