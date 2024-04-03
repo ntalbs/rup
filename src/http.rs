@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{self, ErrorKind, Read, Write};
+use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
@@ -14,6 +14,33 @@ use crate::mime::mime;
 pub(crate) struct Request {
     pub method: String,
     pub path: String,
+}
+
+impl TryFrom<String> for Request {
+    type Error = &'static str;
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
+        if let [method, path] = &v[..] {
+            let decoded = decode_percent(trim_path(path))?;
+            Ok(Request {
+                method: method.to_string(),
+                path: decoded,
+            })
+        } else {
+            Err("Fail to get request method/path")
+        }
+    }
+}
+
+impl Request {
+    pub fn get(stream: &mut TcpStream) -> Result<Self, &'static str> {
+        let mut line = String::new();
+        if let Ok(_) = BufReader::new(stream).read_line(&mut line) {
+            Request::try_from(line)
+        } else {
+            Err("Fail to get request line")
+        }
+    }
 }
 
 fn mime_type(path: &Path) -> &'static str {
@@ -42,22 +69,6 @@ impl WriteFile for TcpStream {
             };
             self.write_all(&buf[..len])?;
             written += len;
-        }
-    }
-}
-
-impl TryFrom<String> for Request {
-    type Error = &'static str;
-    fn try_from(s: String) -> Result<Self, Self::Error> {
-        let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
-        if let [method, path] = &v[..] {
-            let decoded = decode_percent(trim_path(path))?;
-            Ok(Request {
-                method: method.to_string(),
-                path: decoded,
-            })
-        } else {
-            Err("Fail to get request method/path")
         }
     }
 }

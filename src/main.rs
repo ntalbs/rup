@@ -7,7 +7,7 @@ use crate::{cli::Args, http::*};
 use colorust::Color;
 use std::{
     env,
-    io::{self, BufRead, BufReader},
+    io,
     net::{TcpListener, TcpStream},
     path::PathBuf,
     process,
@@ -15,20 +15,8 @@ use std::{
     thread,
 };
 
-fn request_line(mut stream: &TcpStream) -> io::Result<String> {
-    let mut buf = String::new();
-    BufReader::new(&mut stream).read_line(&mut buf)?;
-    Ok(buf)
-}
-
 fn handle_connection(mut stream: TcpStream, base_path: Arc<PathBuf>) -> io::Result<usize> {
-    let request_line = match request_line(&stream) {
-        Ok(req_line) => req_line,
-        Err(e) => {
-            return http_400(&mut stream, &e.to_string());
-        }
-    };
-    let request = match Request::try_from(request_line) {
+    let request = match Request::get(&mut stream) {
         Ok(request) => request,
         Err(e) => {
             return http_400(&mut stream, e);
