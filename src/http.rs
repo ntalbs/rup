@@ -35,7 +35,7 @@ impl TryFrom<String> for Request {
 impl Request {
     pub fn get(stream: &mut TcpStream) -> Result<Self, &'static str> {
         let mut line = String::new();
-        if let Ok(_) = BufReader::new(stream).read_line(&mut line) {
+        if BufReader::new(stream).read_line(&mut line).is_ok() {
             Request::try_from(line)
         } else {
             Err("Fail to get request line")

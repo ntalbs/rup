@@ -6,8 +6,7 @@ mod mime;
 use crate::{cli::Args, http::*};
 use colorust::Color;
 use std::{
-    env,
-    io,
+    env, io,
     net::{TcpListener, TcpStream},
     path::PathBuf,
     process,
