@@ -9,6 +9,7 @@ use crate::decode::decode_percent;
 use crate::mime::mime;
 
 /// Represents HTTP Request. Currently, only interested in `method` and `path`.
+/// Headers in requests are out of interest, hence will be ignored.
 /// Though it has `method` field, only supported HTTP method will be GET, and
 /// other methods in requests will cause error HTTP-405.
 pub(crate) struct Request {
