@@ -10,11 +10,10 @@ use std::{
     net::{TcpListener, TcpStream},
     path::PathBuf,
     process,
-    sync::Arc,
     thread,
 };
 
-fn handle_connection(mut stream: TcpStream, base_path: Arc<PathBuf>) -> io::Result<usize> {
+fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> {
     let request = match Request::get(&mut stream) {
         Ok(request) => request,
         Err(e) => {
@@ -32,7 +31,7 @@ fn handle_connection(mut stream: TcpStream, base_path: Arc<PathBuf>) -> io::Resu
         return http_405(&mut stream);
     }
 
-    let mut path = (*base_path).clone();
+    let mut path = base.clone();
     if request.path != "/" {
         path.push(&request.path[1..]);
     }
@@ -44,7 +43,7 @@ fn handle_connection(mut stream: TcpStream, base_path: Arc<PathBuf>) -> io::Resu
         if index.exists() {
             send_file(&mut stream, &index)
         } else {
-            let base = base_path.to_str().unwrap();
+            let base = base.to_str().unwrap();
             show_dir(&mut stream, base, path)
         }
     } else {
@@ -76,11 +75,11 @@ fn main() {
         args.path.canonicalize().unwrap().to_str().unwrap().green()
     );
     println!("Hit Ctrl+C to exit.\n");
-    let path = Arc::new(args.path);
+    let base_path = args.path;
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                let path = path.clone();
+                let path = base_path.clone();
                 thread::spawn(move || match handle_connection(stream, path) {
                     Ok(_) => {}
                     Err(e) => eprintln!("{e}"),
