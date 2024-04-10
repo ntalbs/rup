@@ -3,21 +3,20 @@ mod decode;
 mod http;
 mod mime;
 
-use crate::{cli::Args, http::*};
+use crate::{cli::Args, http::{Request, Response}};
 use colorust::Color;
 use std::{
     env, io,
     net::{TcpListener, TcpStream},
     path::PathBuf,
-    process,
-    thread,
+    process, thread,
 };
 
 fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> {
     let request = match Request::get(&mut stream) {
         Ok(request) => request,
         Err(e) => {
-            return http_400(&mut stream, e);
+            return Response::error(400, e).send_to(&mut stream);
         }
     };
 
@@ -28,7 +27,7 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
             "Requested Http Method: {} is not supported.",
             &request.method
         );
-        return http_405(&mut stream);
+        return Response::error(405, "Method not allowed").send_to(&mut stream);
     }
 
     let mut path = base.clone();
@@ -37,17 +36,19 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
     }
 
     if !path.exists() {
-        http_404(&mut stream, "Requested path does not exist.")
+        Response::error(404_u16, "Requested path does not exist.").send_to(&mut stream)
     } else if path.is_dir() {
         let index = path.join("index.html");
         if index.exists() {
-            send_file(&mut stream, &index)
+            Response::file(&index).send_to(&mut stream)
         } else {
             let base = base.to_str().unwrap();
-            show_dir(&mut stream, base, path)
+            // show_dir(&mut stream, base, path)
+            Response::directory(base, &path).send_to(&mut stream)
         }
     } else {
-        send_file(&mut stream, path.as_path())
+        // send_file(&mut stream, path.as_path())
+        Response::file(&path).send_to(&mut stream)
     }
 }
 

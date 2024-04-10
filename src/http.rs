@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::TcpStream;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use colorust::Color;
 
@@ -74,6 +74,39 @@ impl WriteFile for TcpStream {
     }
 }
 
+pub(crate) enum Response<'a> {
+    File(&'a Path),
+    Directory(&'a str, &'a Path),
+    Error { code: u16, body: &'static str },
+}
+
+impl<'a> Response<'a> {
+    pub(crate) fn file(path: &'a Path) -> Self {
+        Response::File(path)
+    }
+
+    pub(crate) fn directory(base: &'a str, path: &'a Path) -> Self {
+        Response::Directory(base, path)
+    }
+
+    pub(crate) fn error(code: u16, body: &'static str) -> Self {
+        Response::Error { code, body }
+    }
+
+    pub(crate) fn send_to(&self, stream: &mut TcpStream) -> io::Result<usize> {
+        match *self {
+            Response::File(path) => send_file(stream, path),
+            Response::Directory(base, path) => show_dir(stream, base, path),
+            Response::Error { code, body } => match code {
+                400 => http_400(stream, body),
+                404 => http_404(stream, body),
+                405 => http_405(stream),
+                _ => Err(io::Error::new(ErrorKind::Other, body))
+            }
+        }
+    }
+}
+
 pub(crate) fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize> {
     let f = File::open(path)?;
     let md = f.metadata()?;
@@ -94,7 +127,7 @@ fn css() -> &'static str {
     "<style>body { font-size: 1.2rem; line-height: 1.2; margin: 1rem; }</style>"
 }
 
-pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: PathBuf) -> io::Result<usize> {
+pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(
         format!(
