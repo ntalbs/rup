@@ -3,7 +3,10 @@ mod decode;
 mod http;
 mod mime;
 
-use crate::{cli::Args, http::{Request, Response}};
+use crate::{
+    cli::Args,
+    http::{Request, Response},
+};
 use colorust::Color;
 use std::{
     env, io,

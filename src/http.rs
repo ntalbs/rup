@@ -101,8 +101,8 @@ impl<'a> Response<'a> {
                 400 => http_400(stream, body),
                 404 => http_404(stream, body),
                 405 => http_405(stream),
-                _ => Err(io::Error::new(ErrorKind::Other, body))
-            }
+                _ => Err(io::Error::new(ErrorKind::Other, body)),
+            },
         }
     }
 }
