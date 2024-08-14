@@ -18,7 +18,7 @@ pub(crate) struct Request {
 }
 
 impl TryFrom<String> for Request {
-    type Error = &'static str;
+    type Error = String;
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
@@ -28,18 +28,18 @@ impl TryFrom<String> for Request {
                 path: decoded,
             })
         } else {
-            Err("Fail to get request method/path")
+            Err(format!("Fail to get request method/path\n{}", s))
         }
     }
 }
 
 impl Request {
-    pub fn get(stream: &mut TcpStream) -> Result<Self, &'static str> {
+    pub fn get(stream: &mut TcpStream) -> Result<Self, String> {
         let mut line = String::new();
         if BufReader::new(stream).read_line(&mut line).is_ok() {
             Request::try_from(line)
         } else {
-            Err("Fail to get request line")
+            Err("Fail to get request line".into())
         }
     }
 }
@@ -77,7 +77,7 @@ impl WriteFile for TcpStream {
 pub(crate) enum Response<'a> {
     File(&'a Path),
     Directory(&'a str, &'a Path),
-    Error { code: u16, body: &'static str },
+    Error { code: u16, body: &'a str },
 }
 
 impl<'a> Response<'a> {
@@ -89,7 +89,7 @@ impl<'a> Response<'a> {
         Response::Directory(base, path)
     }
 
-    pub(crate) fn error(code: u16, body: &'static str) -> Self {
+    pub(crate) fn error(code: u16, body: &'a str) -> Self {
         Response::Error { code, body }
     }
 

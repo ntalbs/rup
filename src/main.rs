@@ -19,7 +19,7 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
     let request = match Request::get(&mut stream) {
         Ok(request) => request,
         Err(e) => {
-            return Response::error(400, e).send_to(&mut stream);
+            return Response::error(400, &e).send_to(&mut stream);
         }
     };
 
