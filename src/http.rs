@@ -49,7 +49,7 @@ fn mime_type(path: &Path) -> &'static str {
 }
 
 fn trim_path(input: &str) -> &str {
-    input.split(|c| c == '#' || c == '?').next().unwrap()
+    input.split(&['#', '?']).next().unwrap()
 }
 
 trait WriteFile {
