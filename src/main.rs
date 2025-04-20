@@ -23,6 +23,11 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
         }
     };
 
+    if request.method.is_empty() && request.path.is_empty() {
+        // ignore empty requests
+        return Ok(0);
+    }
+
     println!("{} {}", &request.method.cyan(), &request.path.yellow());
 
     if &request.method != "GET" {

@@ -27,6 +27,11 @@ impl TryFrom<String> for Request {
                 method: method.to_string(),
                 path: decoded,
             })
+        } else if s.is_empty() {
+            Ok(Request {
+                method: "".to_string(),
+                path: "".to_string(),
+            })
         } else {
             Err(format!("Fail to get request method/path\n{}", s))
         }
