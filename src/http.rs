@@ -106,7 +106,7 @@ impl<'a> Response<'a> {
                 400 => http_400(stream, body),
                 404 => http_404(stream, body),
                 405 => http_405(stream),
-                _ => Err(io::Error::new(ErrorKind::Other, body)),
+                _ => Err(io::Error::other(body)),
             },
         }
     }
@@ -176,10 +176,11 @@ pub(crate) fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<usize
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::new(
-        ErrorKind::Other,
-        format!("{}: {}", "400 Bad Request".red(), reason),
-    ))
+    Err(io::Error::other(format!(
+        "{}: {}",
+        "400 Bad Request".red(),
+        reason
+    )))
 }
 
 pub(crate) fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
@@ -200,10 +201,11 @@ pub(crate) fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize
         stream.write_all(body)?;
     }
 
-    Err(io::Error::new(
-        ErrorKind::Other,
-        format!("{}: {}", "404 Not Found".red(), reason),
-    ))
+    Err(io::Error::other(format!(
+        "{}: {}",
+        "404 Not Found".red(),
+        reason
+    )))
 }
 
 pub(crate) fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
@@ -214,5 +216,5 @@ pub(crate) fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::new(ErrorKind::Other, body_string))
+    Err(io::Error::other(body_string))
 }
