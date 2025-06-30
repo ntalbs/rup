@@ -33,7 +33,7 @@ impl TryFrom<String> for Request {
                 path: "".to_string(),
             })
         } else {
-            Err(format!("Fail to get request method/path\n{}", s))
+            Err(format!("Fail to get request method/path\n{s}"))
         }
     }
 }
@@ -120,9 +120,9 @@ pub(crate) fn send_file(stream: &mut TcpStream, path: &Path) -> io::Result<usize
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Cache-Control: max-age=3600\n")?;
     if mime_type.contains("text") {
-        stream.write_all(format!("Content-Type: {}; charset=utf-8\n", mime_type).as_bytes())?;
+        stream.write_all(format!("Content-Type: {mime_type}; charset=utf-8\n").as_bytes())?;
     } else {
-        stream.write_all(format!("Content-Type: {}\n", mime_type).as_bytes())?;
+        stream.write_all(format!("Content-Type: {mime_type}\n").as_bytes())?;
     }
     stream.write_all(format!("Content-Length: {}\r\n\r\n", md.len()).as_bytes())?;
     stream.write_file(f)
@@ -156,7 +156,7 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
         ) {
             let href = href.to_str().unwrap();
             let name = name.to_str().unwrap();
-            buf.write_all(format!("<li><a href=\"/{}\">{}</li>", href, name).as_bytes())?;
+            buf.write_all(format!("<li><a href=\"/{href}\">{name}</li>").as_bytes())?;
         }
     }
     buf.write_all(b"</ol></body><html>")?;
@@ -170,7 +170,7 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
 }
 
 pub(crate) fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
-    let body_string = format!("Bad Request: {}\n", reason);
+    let body_string = format!("Bad Request: {reason}\n");
     let body = body_string.as_bytes();
     stream.write_all(b"HTTP/1.1 400 Bad Request\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
@@ -192,10 +192,10 @@ pub(crate) fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize
         let file_404 = File::open(path_404)?;
         let content_length = &file_404.metadata()?.len();
         stream.write_all(b"Content-Type: text/html\n")?;
-        stream.write_all(format!("Content-Length: {}\r\n\r\n", content_length).as_bytes())?;
+        stream.write_all(format!("Content-Length: {content_length}\r\n\r\n").as_bytes())?;
         stream.write_file(file_404)?;
     } else {
-        let body_string = format!("Not Found: {}\n", reason);
+        let body_string = format!("Not Found: {reason}\n");
         let body = body_string.as_bytes();
         stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
         stream.write_all(body)?;
