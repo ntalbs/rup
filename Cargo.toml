@@ -1,10 +1,11 @@
 [package]
 name = "rup"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [profile.release]
 panic = 'abort'
 
 [dependencies]
 colorust = { git = "https://github.com/ntalbs/colorust.git" }
+
