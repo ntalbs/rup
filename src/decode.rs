@@ -1,4 +1,4 @@
-use std::str::{from_utf8, Chars};
+use std::str::{Chars, from_utf8};
 
 const MALFORMED_URI: &str = "Malformed URI";
 fn get_hex(chars: &mut Chars) -> Result<u8, &'static str> {

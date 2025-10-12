@@ -143,7 +143,11 @@ impl<'a> ArgsParser<'a> {
                     return Ok(ParseResult::Help);
                 }
                 _ => {
-                    let reason = format!("{}: Found argument '{}' which wasn't expected, or isn't valid in this context", "error".bright_red(), token.yellow());
+                    let reason = format!(
+                        "{}: Found argument '{}' which wasn't expected, or isn't valid in this context",
+                        "error".bright_red(),
+                        token.yellow()
+                    );
                     return Err(ParseError { reason });
                 }
             }
