@@ -1,7 +1,7 @@
 use std::fs::{self, File};
 use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::TcpStream;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use colorust::Color;
 
@@ -132,6 +132,18 @@ fn css() -> &'static str {
     "<style>body { font-size: 1.2rem; line-height: 1.2; margin: 1rem; }</style>"
 }
 
+fn files_in(dir: &Path) -> io::Result<Vec<PathBuf>> {
+    let mut files = vec![];
+
+    for f in fs::read_dir(dir)? {
+        let dir_entry = f?;
+        files.push(dir_entry.path());
+    }
+    files.sort();
+
+    Ok(files)
+}
+
 pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     buf.write_all(
@@ -147,16 +159,17 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
         buf.write_all("<li><a href=\"..\">..</a></li>".as_bytes())?;
     }
 
-    let paths = fs::read_dir(path)?;
+    let paths = files_in(path)?;
     for f in paths {
-        let dir_entry = f?;
-        if let (Ok(href), Some(name)) = (
-            dir_entry.path().strip_prefix(base),
-            dir_entry.path().file_name(),
-        ) {
+        if let (Ok(href), Some(name)) = (f.strip_prefix(base), f.file_name()) {
             let href = href.to_str().unwrap();
             let name = name.to_str().unwrap();
-            buf.write_all(format!("<li><a href=\"/{href}\">{name}</li>").as_bytes())?;
+            buf.write_all(
+                format!(
+                    "<li><a href=\"/{href}\">{name}{}</li>",
+                    if f.is_dir() { "/" } else { "" }
+                ).as_bytes()
+            )?;
         }
     }
     buf.write_all(b"</ol></body><html>")?;
