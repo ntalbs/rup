@@ -168,7 +168,8 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
                 format!(
                     "<li><a href=\"/{href}\">{name}{}</li>",
                     if f.is_dir() { "/" } else { "" }
-                ).as_bytes()
+                )
+                .as_bytes(),
             )?;
         }
     }
