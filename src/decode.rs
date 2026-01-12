@@ -52,19 +52,28 @@ pub(crate) fn decode_percent(input: &str) -> Result<String, &'static str> {
     Ok(decoded)
 }
 
-#[test]
-fn test_decode() -> Result<(), &'static str> {
-    assert_eq!(decode_percent("hello%20world")?, "hello world");
-    assert_eq!(decode_percent("%ec%95%84%eb%a7%88%ec%a1%b4")?, "아마존");
-    assert_eq!(decode_percent("/%ec%95%84%eb%a7%88%ec%a1%b4")?, "/아마존");
-    assert_eq!(decode_percent("%ec%95%84%eb%a7%88%ec%a1%b4/")?, "아마존/");
-    assert_eq!(decode_percent("/%ec%95%84%eb%a7%88%ec%a1%b4/")?, "/아마존/");
-    Ok(())
-}
+#[cfg(test)]
+mod test {
+    use p_test::p_test;
+    use super::*;
 
-#[test]
-fn test_invalid() {
-    assert_eq!(decode_percent("%hello").unwrap_err(), MALFORMED_URI);
-    assert_eq!(decode_percent("%1%1%3").unwrap_err(), MALFORMED_URI);
-    assert_eq!(decode_percent("%ff").unwrap_err(), MALFORMED_URI);
+    #[p_test(
+        ("hello%20world", "hello world"),
+        ("%ec%95%84%eb%a7%88%ec%a1%b4", "아마존"),
+        ("/%ec%95%84%eb%a7%88%ec%a1%b4", "/아마존"),
+        ("%ec%95%84%eb%a7%88%ec%a1%b4/", "아마존/"),
+        ("/%ec%95%84%eb%a7%88%ec%a1%b4/", "/아마존/"),
+    )]
+    fn test_decode(input: &str, decoded: &str) {
+        assert_eq!(decode_percent(input).unwrap(), decoded);
+    }
+
+    #[p_test(
+        ("%hello"),
+        ("%1%1%3"),
+        ("%ff"),
+    )]
+    fn test_invalid(input: &str) {
+        assert_eq!(decode_percent(input).unwrap_err(), MALFORMED_URI);
+    }
 }

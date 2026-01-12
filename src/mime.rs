@@ -1555,24 +1555,29 @@ pub(crate) fn mime(ext: &str) -> &'static str {
     }
 }
 
-#[test]
-fn test_mime_types_sorted() {
-    fn is_sorted<T>(data: &[T]) -> bool
-    where
-        T: Ord,
-    {
-        data.windows(2).all(|w| w[0] <= w[1])
-    }
-    assert!(is_sorted(MIME_TYPES));
-}
+#[cfg(test)]
+mod test {
+    use p_test::p_test;
+    use super::*;
 
-#[test]
-fn test_mime_types_basics() {
-    assert_eq!(mime("html"), "text/html");
-    assert_eq!(mime("css"), "text/css");
-    assert_eq!(mime("js"), "application/javascript");
-    assert_eq!(mime("gif"), "image/gif");
-    assert_eq!(mime("jpg"), "image/jpeg");
-    assert_eq!(mime("jpeg"), "image/jpeg");
-    assert_eq!(mime("png"), "image/png");
+    #[test]
+    fn test_mime_types_sorted() {
+        fn is_sorted<T: Ord>(data: &[T]) -> bool {
+            data.windows(2).all(|w| w[0] <= w[1])
+        }
+        assert!(is_sorted(MIME_TYPES));
+    }
+
+    #[p_test(
+        ("html", "text/html"),
+        ("css", "text/css"),
+        ("js", "application/javascript"),
+        ("gif", "image/gif"),
+        ("jpg", "image/jpeg"),
+        ("jpeg", "image/jpeg"),
+        ("png", "image/png"),
+    )]
+    fn test_mime_types_basics(input: &str, expected: &str) {
+        assert_eq!(mime(input), expected);
+    }
 }
