@@ -1557,8 +1557,8 @@ pub(crate) fn mime(ext: &str) -> &'static str {
 
 #[cfg(test)]
 mod test {
-    use p_test::p_test;
     use super::*;
+    use p_test::p_test;
 
     #[test]
     fn test_mime_types_sorted() {

@@ -54,8 +54,8 @@ pub(crate) fn decode_percent(input: &str) -> Result<String, &'static str> {
 
 #[cfg(test)]
 mod test {
-    use p_test::p_test;
     use super::*;
+    use p_test::p_test;
 
     #[p_test(
         ("hello%20world", "hello world"),
