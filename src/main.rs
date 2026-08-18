@@ -28,12 +28,12 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
         return Ok(0);
     }
 
-    println!("{} {}", &request.method.cyan(), &request.path.yellow());
+    println!("{} {}", request.method.cyan(), request.path.yellow());
 
     if &request.method != "GET" {
         println!(
             "Requested Http Method: {} is not supported.",
-            &request.method
+            request.method
         );
         return Response::error(405, "Method not allowed").send_to(&mut stream);
     }
