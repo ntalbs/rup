@@ -7,7 +7,7 @@ use crate::{
     cli::Args,
     http::{Request, Response},
 };
-use colorust::Color;
+use coloring::Color;
 use std::{
     env, io,
     net::{TcpListener, TcpStream},

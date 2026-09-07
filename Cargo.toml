@@ -7,7 +7,7 @@ edition = "2024"
 panic = 'abort'
 
 [dependencies]
-colorust = { git = "https://github.com/ntalbs/colorust.git" }
+coloring = { git = "https://github.com/ntalbs/coloring.git" }
 
 [dev-dependencies]
 p-test = "1.0.2"

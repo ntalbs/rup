@@ -1,6 +1,6 @@
 use std::{path::PathBuf, process::exit};
 
-use colorust::{Color, Style};
+use coloring::{Color, Style};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_PORT: u16 = 3000;

@@ -3,7 +3,7 @@ use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
-use colorust::Color;
+use coloring::Color;
 
 use crate::decode::decode_percent;
 use crate::mime::mime;
