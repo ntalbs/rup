@@ -120,7 +120,7 @@ impl<'a> ArgsParser<'a> {
                             ret.path = path;
                         } else {
                             let reason = format!(
-                                "{}: The sepcified path '{}' does't exist.",
+                                "{}: The specified path '{}' does't exist.",
                                 "error".bright_red(),
                                 root.yellow()
                             );

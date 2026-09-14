@@ -173,7 +173,7 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
             )?;
         }
     }
-    buf.write_all(b"</ol></body><html>")?;
+    buf.write_all(b"</ol></body></html>")?;
 
     stream.write_all(b"HTTP/1.1 200 OK\n")?;
     stream.write_all(b"Content-Type: text/html; charset=utf-8\n")?;
