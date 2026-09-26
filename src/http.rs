@@ -149,32 +149,40 @@ fn files_in(dir: &Path) -> io::Result<Vec<PathBuf>> {
 
 pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
+    let path_display = match path.to_str() {
+        Some(path_str) if !path_str.is_empty() => &path_str[1..],
+        _ => "/",
+    };
     buf.write_all(
         format!(
             "<html><head>{}</head><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
             css(),
-            &path.to_str().unwrap()[1..]
+            path_display
         )
         .as_bytes(),
     )?;
 
-    if base != path.to_str().unwrap() {
+    if path.to_str() != Some(base) {
         buf.write_all("<li><a href=\"..\">..</a></li>".as_bytes())?;
     }
 
     let paths = files_in(path)?;
     for f in paths {
-        if let (Ok(href), Some(name)) = (f.strip_prefix(base), f.file_name()) {
-            let href = href.to_str().unwrap();
-            let name = name.to_str().unwrap();
-            buf.write_all(
-                format!(
-                    "<li><a href=\"/{href}\">{name}{}</li>",
-                    if f.is_dir() { "/" } else { "" }
-                )
-                .as_bytes(),
-            )?;
-        }
+        let href = match f.strip_prefix(base) {
+            Ok(href) => match href.to_str() {
+                Some(href) => href,
+                None => continue,
+            },
+            Err(_) => continue,
+        };
+        let name = match f.file_name().and_then(|name| name.to_str()) {
+            Some(name) => name,
+            None => continue,
+        };
+        let trailing = if f.is_dir() { "/" } else { "" };
+        buf.write_all(
+            format!("<li><a href=\"/{href}\">{name}{trailing}</li>").as_bytes(),
+        )?;
     }
     buf.write_all(b"</ol></body></html>")?;
 

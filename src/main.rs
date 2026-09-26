@@ -43,10 +43,13 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
             if canonicalized.starts_with(&base) {
                 canonicalized
             } else {
-                return Response::error(404_u16, "Requested path does not exist.").send_to(&mut stream);
+                return Response::error(404_u16, "Requested path does not exist.")
+                    .send_to(&mut stream);
             }
         }
-        Err(_) => return Response::error(404_u16, "Requested path does not exist.").send_to(&mut stream),
+        Err(_) => {
+            return Response::error(404_u16, "Requested path does not exist.").send_to(&mut stream);
+        }
     };
 
     if !path.exists() {
