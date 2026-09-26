@@ -1,15 +1,14 @@
-use std::{path::PathBuf, process::exit};
-
 use coloring::{Color, Style};
+use std::{env, path::PathBuf};
 
 pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 const DEFAULT_PORT: u16 = 3000;
 
-fn show_version() {
+pub(crate) fn show_version() {
     println!("rup {VERSION}");
 }
 
-fn show_help() {
+pub(crate) fn show_help() {
     fn print_opt(opt: &str, val: &str, desc: &str) {
         println!("  {:25} {:8} {}", opt.bright_white(), val, desc);
     }
@@ -39,14 +38,14 @@ pub(crate) struct Args {
 }
 
 #[derive(Debug, PartialEq)]
-enum ParseResult {
+pub(crate) enum ParseResult {
     Args(Args),
     Help,
     Version,
 }
 
-struct ParseError {
-    reason: String,
+pub(crate) struct ParseError {
+    pub(crate) reason: String,
 }
 
 struct ArgsParser<'a> {
@@ -54,28 +53,68 @@ struct ArgsParser<'a> {
     current: usize,
 }
 
+fn parse_port(port_str: &str) -> Result<u16, ParseError> {
+    if let Ok(port) = port_str.parse()
+        && (1..=u16::MAX).contains(&port)
+    {
+        Ok(port)
+    } else {
+        Err(ParseError {
+            reason: format!(
+                "Invalid value '{}' for '{}'",
+                port_str.yellow(),
+                "--port <PORT>".yellow()
+            ),
+        })
+    }
+}
+
+fn parse_root_dir(root: &str) -> Result<PathBuf, ParseError> {
+    if let Ok(path) = PathBuf::from(root).canonicalize() {
+        Ok(path)
+    } else {
+        Err(ParseError {
+            reason: format!(
+                "{}: The specified path '{}' does not exist.",
+                "Error".bright_red(),
+                root.yellow()
+            ),
+        })
+    }
+}
+
 impl<'a> ArgsParser<'a> {
     fn new(tokens: &'a [String]) -> Self {
         Self { tokens, current: 0 }
     }
 
-    fn advance(&mut self) -> &String {
-        if !self.is_at_end() {
-            self.current += 1;
+    fn next_token(&mut self) -> Option<&String> {
+        if self.is_at_end() {
+            return None;
         }
-        self.previous()
+        self.current += 1;
+        Some(&self.tokens[self.current - 1])
+    }
+
+    fn next_value(&mut self, flag: &str) -> Result<&String, ParseError> {
+        if let Some(next) = self.tokens.get(self.current)
+            && !next.starts_with('-')
+        {
+            self.current += 1;
+            Ok(next)
+        } else {
+            Err(ParseError {
+                reason: format!(
+                    "{}: The argument '{}' requires a value but none was supplied",
+                    "Error".bright_red(),
+                    flag.yellow()
+                ),
+            })
+        }
     }
 
     fn is_at_end(&self) -> bool {
         self.current >= self.tokens.len()
-    }
-
-    fn peek(&self) -> &String {
-        &self.tokens[self.current]
-    }
-
-    fn previous(&self) -> &String {
-        &self.tokens[self.current - 1]
     }
 
     fn parse(&mut self) -> Result<ParseResult, ParseError> {
@@ -84,57 +123,15 @@ impl<'a> ArgsParser<'a> {
             path: PathBuf::from(".").canonicalize().unwrap(),
         };
 
-        while !self.is_at_end() {
-            let token = self.advance();
+        while let Some(token) = self.next_token() {
             match token.as_str() {
                 "-p" | "--port" => {
-                    let port_str = self.peek();
-                    if !port_str.starts_with('-') {
-                        ret.port = match port_str.parse() {
-                            Ok(port) => port,
-                            Err(e) => {
-                                let reason = format!(
-                                    "Invalid value '{}' for '{}': {}",
-                                    port_str.yellow(),
-                                    "--port <PORT>".yellow(),
-                                    e
-                                );
-                                return Err(ParseError { reason });
-                            }
-                        };
-                        self.advance();
-                    } else {
-                        let reason = format!(
-                            "{}: The argument '{}' requires a value but none was supplied",
-                            "error".bright_red(),
-                            "--port <PORT>".yellow()
-                        );
-                        return Err(ParseError { reason });
-                    }
+                    let port_str = self.next_value("--port <PORT>")?;
+                    ret.port = parse_port(port_str)?;
                 }
                 "-r" | "--root" => {
-                    let root = self.peek();
-                    if !root.starts_with('-') {
-                        let path = PathBuf::from(root);
-                        if path.exists() {
-                            ret.path = path.canonicalize().unwrap();
-                        } else {
-                            let reason = format!(
-                                "{}: The specified path '{}' does't exist.",
-                                "error".bright_red(),
-                                root.yellow()
-                            );
-                            return Err(ParseError { reason });
-                        }
-                        self.advance();
-                    } else {
-                        let reason = format!(
-                            "{}: The argument '{}' requires a value but none was supplied",
-                            "error".bright_red(),
-                            "--root <PATH>".yellow()
-                        );
-                        return Err(ParseError { reason });
-                    }
+                    let root = self.next_value("--root <ROOT>")?;
+                    ret.path = parse_root_dir(root)?;
                 }
                 "-V" | "--version" => {
                     return Ok(ParseResult::Version);
@@ -145,7 +142,7 @@ impl<'a> ArgsParser<'a> {
                 _ => {
                     let reason = format!(
                         "{}: Found argument '{}' which wasn't expected, or isn't valid in this context",
-                        "error".bright_red(),
+                        "Error".bright_red(),
                         token.yellow()
                     );
                     return Err(ParseError { reason });
@@ -157,59 +154,71 @@ impl<'a> ArgsParser<'a> {
 }
 
 impl Args {
-    pub(crate) fn parse(args: &[String]) -> Self {
+    pub(crate) fn parse() -> Result<ParseResult, ParseError> {
+        let args: Vec<String> = env::args().collect();
         let mut arg_parser = ArgsParser::new(&args[1..]);
+        arg_parser.parse()
+    }
+}
 
-        match arg_parser.parse() {
-            Ok(r) => match r {
-                ParseResult::Args(a) => a,
-                ParseResult::Help => {
-                    show_help();
-                    exit(0);
+#[cfg(test)]
+mod test {
+    use p_test::p_test;
+
+    use crate::cli::{Args, ArgsParser, ParseResult};
+
+    #[p_test(
+        (vec![], Args { port: 3000, path: ".".into() }),
+        (vec!["-p", "1024"], Args { port: 1024, path: ".".into() }),
+        (vec!["--port", "1024"], Args { port: 1024, path: ".".into() }),
+    )]
+    fn arg_parse_test(input: Vec<&str>, expected: Args) {
+        let input: Vec<String> = input.into_iter().map(String::from).collect();
+        if let Ok(actual) = ArgsParser::new(&input).parse() {
+            match actual {
+                ParseResult::Args(Args { port, path }) => {
+                    assert_eq!(port, expected.port);
+                    assert_eq!(path, expected.path.canonicalize().unwrap());
                 }
-                ParseResult::Version => {
-                    show_version();
-                    exit(0);
-                }
-            },
-            Err(e) => {
-                eprintln!("{}", e.reason);
-                exit(1);
+                _ => panic!(),
             }
+        };
+    }
+
+    #[p_test(
+        (vec!["-p"]),
+        (vec!["-r"]),
+        (vec!["-port"]),
+        (vec!["-root"]),
+        (vec!["-p", "-r"]),
+        (vec!["-p", "-x"]),
+        (vec!["-x"]),
+        (vec!["-p", "0"]),
+        (vec!["-p", "65536"]),
+        (vec!["--port", "-1024"]),
+    )]
+    fn arg_parse_err_test(input: Vec<&str>) {
+        let input: Vec<String> = input.into_iter().map(String::from).collect();
+        assert!(ArgsParser::new(&input).parse().is_err());
+    }
+
+    #[test]
+    fn test_version() {
+        let args = vec!["--version".to_string(), "-p".to_string()];
+        if let Ok(result) = ArgsParser::new(&args).parse() {
+            assert_eq!(result, ParseResult::Version);
+        } else {
+            assert!(false);
         }
     }
-}
 
-#[test]
-fn test_p() {
-    let args = vec!["rup".to_string(), "-p".to_string(), "1024".to_string()];
-    let args = Args::parse(&args);
-    assert_eq!(args.port, 1024);
-}
-
-#[test]
-fn test_port() {
-    let args = vec!["rup".to_string(), "--port".to_string(), "1024".to_string()];
-    let args = Args::parse(&args);
-    assert_eq!(args.port, 1024);
-}
-
-#[test]
-fn test_version() {
-    let args = vec!["--version".to_string(), "-p".to_string()];
-    if let Ok(result) = ArgsParser::new(&args).parse() {
-        assert_eq!(result, ParseResult::Version);
-    } else {
-        assert!(false);
-    }
-}
-
-#[test]
-fn test_help() {
-    let args = vec!["--help".to_string(), "-p".to_string()];
-    if let Ok(result) = ArgsParser::new(&args).parse() {
-        assert_eq!(result, ParseResult::Help);
-    } else {
-        assert!(false);
+    #[test]
+    fn test_help() {
+        let args = vec!["--help".to_string(), "-p".to_string()];
+        if let Ok(result) = ArgsParser::new(&args).parse() {
+            assert_eq!(result, ParseResult::Help);
+        } else {
+            assert!(false);
+        }
     }
 }

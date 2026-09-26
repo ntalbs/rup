@@ -4,16 +4,16 @@ mod http;
 mod mime;
 
 use crate::{
-    cli::Args,
+    cli::{Args, ParseResult, show_help, show_version},
     http::{Request, Response},
 };
 use coloring::Color;
 use std::{
-    env,
     io::{self, Error, ErrorKind},
     net::{TcpListener, TcpStream},
     path::PathBuf,
-    process, thread,
+    process::{self, exit},
+    thread,
 };
 
 fn canonical_path(base: &PathBuf, request_path: String) -> io::Result<PathBuf> {
@@ -81,8 +81,25 @@ fn handle_connection(mut stream: TcpStream, base: PathBuf) -> io::Result<usize> 
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let args = Args::parse(&args);
+    let args = Args::parse();
+    let args = match args {
+        Ok(r) => match r {
+            ParseResult::Args(a) => a,
+            ParseResult::Help => {
+                show_help();
+                exit(0);
+            }
+            ParseResult::Version => {
+                show_version();
+                exit(0);
+            }
+        },
+        Err(e) => {
+            eprintln!("{}", e.reason);
+            exit(1);
+        }
+    };
+
     let port = args.port;
     let base_path = args.path;
 
