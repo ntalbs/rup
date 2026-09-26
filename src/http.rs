@@ -3,8 +3,6 @@ use std::io::{self, BufRead, BufReader, ErrorKind, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
-use coloring::Color;
-
 use crate::decode::decode_percent;
 use crate::mime::mime;
 
@@ -47,7 +45,7 @@ impl Request {
         if BufReader::new(stream).read_line(&mut line).is_ok() {
             Request::try_from(line)
         } else {
-            Err("Fail to get request line".into())
+            Err("Invalid HTTP request".into())
         }
     }
 }
@@ -85,7 +83,7 @@ impl WriteFile for TcpStream {
 pub(crate) enum Response<'a> {
     File(&'a Path),
     Directory(&'a str, &'a Path),
-    Error { code: u16, body: &'a str },
+    HttpError(u16),
 }
 
 impl<'a> Response<'a> {
@@ -97,19 +95,19 @@ impl<'a> Response<'a> {
         Response::Directory(base, path)
     }
 
-    pub(crate) fn error(code: u16, body: &'a str) -> Self {
-        Response::Error { code, body }
+    pub(crate) fn error(code: u16) -> Self {
+        Response::HttpError(code)
     }
 
     pub(crate) fn send_to(&self, stream: &mut TcpStream) -> io::Result<usize> {
         match *self {
             Response::File(path) => send_file(stream, path),
             Response::Directory(base, path) => show_dir(stream, base, path),
-            Response::Error { code, body } => match code {
-                400 => http_400(stream, body),
-                404 => http_404(stream, body),
+            Response::HttpError(code) => match code {
+                400 => http_400(stream),
+                404 => http_404(stream),
                 405 => http_405(stream),
-                _ => Err(io::Error::other(body)),
+                _ => Err(io::Error::other("Unknown error")),
             },
         }
     }
@@ -180,9 +178,7 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
             None => continue,
         };
         let trailing = if f.is_dir() { "/" } else { "" };
-        buf.write_all(
-            format!("<li><a href=\"/{href}\">{name}{trailing}</li>").as_bytes(),
-        )?;
+        buf.write_all(format!("<li><a href=\"/{href}\">{name}{trailing}</li>").as_bytes())?;
     }
     buf.write_all(b"</ol></body></html>")?;
 
@@ -194,21 +190,16 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
     Ok(buf.len())
 }
 
-pub(crate) fn http_400(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
-    let body_string = format!("Bad Request: {reason}\n");
-    let body = body_string.as_bytes();
+pub(crate) fn http_400(stream: &mut TcpStream) -> io::Result<usize> {
+    let body = b"Bad Request\n";
     stream.write_all(b"HTTP/1.1 400 Bad Request\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::other(format!(
-        "{}: {}",
-        "400 Bad Request".red(),
-        reason
-    )))
+    Ok(0)
 }
 
-pub(crate) fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize> {
+pub(crate) fn http_404(stream: &mut TcpStream) -> io::Result<usize> {
     stream.write_all(b"HTTP/1.1 404 Not Found\n")?;
     stream.write_all(b"Content-Type: text/plain\n")?;
 
@@ -220,17 +211,11 @@ pub(crate) fn http_404(stream: &mut TcpStream, reason: &str) -> io::Result<usize
         stream.write_all(format!("Content-Length: {content_length}\r\n\r\n").as_bytes())?;
         stream.write_file(file_404)?;
     } else {
-        let body_string = format!("Not Found: {reason}\n");
-        let body = body_string.as_bytes();
+        let body = b"Not Found: Requested path does not exist.\n";
         stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
         stream.write_all(body)?;
     }
-
-    Err(io::Error::other(format!(
-        "{}: {}",
-        "404 Not Found".red(),
-        reason
-    )))
+    Ok(0)
 }
 
 pub(crate) fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
@@ -241,5 +226,5 @@ pub(crate) fn http_405(stream: &mut TcpStream) -> io::Result<usize> {
     stream.write_all(b"Content-Type: text/plain\n")?;
     stream.write_all(format!("Content-Length: {}\r\n\r\n", body.len()).as_bytes())?;
     stream.write_all(body)?;
-    Err(io::Error::other(body_string))
+    Ok(0)
 }
