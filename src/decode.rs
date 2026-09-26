@@ -65,7 +65,7 @@ mod test {
         ("/%ec%95%84%eb%a7%88%ec%a1%b4/", "/아마존/"),
     )]
     fn test_decode(input: &str, decoded: &str) {
-        assert_eq!(decode_percent(input).unwrap(), decoded);
+        assert_eq!(decode_percent(input), Ok(decoded.to_string()));
     }
 
     #[p_test(
@@ -74,6 +74,6 @@ mod test {
         ("%ff"),
     )]
     fn test_invalid(input: &str) {
-        assert_eq!(decode_percent(input).unwrap_err(), MALFORMED_URI);
+        assert_eq!(decode_percent(input), Err(MALFORMED_URI));
     }
 }
