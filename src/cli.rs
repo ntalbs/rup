@@ -81,7 +81,7 @@ impl<'a> ArgsParser<'a> {
     fn parse(&mut self) -> Result<ParseResult, ParseError> {
         let mut ret = Args {
             port: DEFAULT_PORT,
-            path: PathBuf::from("."),
+            path: PathBuf::from(".").canonicalize().unwrap(),
         };
 
         while !self.is_at_end() {
@@ -117,7 +117,7 @@ impl<'a> ArgsParser<'a> {
                     if !root.starts_with('-') {
                         let path = PathBuf::from(root);
                         if path.exists() {
-                            ret.path = path;
+                            ret.path = path.canonicalize().unwrap();
                         } else {
                             let reason = format!(
                                 "{}: The specified path '{}' does't exist.",

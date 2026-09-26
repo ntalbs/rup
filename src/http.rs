@@ -22,7 +22,10 @@ impl TryFrom<String> for Request {
     fn try_from(s: String) -> Result<Self, Self::Error> {
         let v = s.split_whitespace().take(2).collect::<Vec<&str>>();
         if let [method, path] = &v[..] {
-            let decoded = decode_percent(trim_path(path))?;
+            let mut decoded = decode_percent(trim_path(path))?;
+            if !decoded.starts_with('/') {
+                decoded.insert(0, '/')
+            };
             Ok(Request {
                 method: method.to_string(),
                 path: decoded,
