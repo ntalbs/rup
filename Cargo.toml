@@ -1,7 +1,13 @@
 [package]
 name = "ntalbs-rup"
 version = "0.1.0"
+authors = ["ntalbs <ntalbsen@gmail.com>"]
 edition = "2024"
+description = "Very basic command-line static HTTP server without external dependencies."
+repository = "https://github.com/ntalbs/rup"
+license = "MIT"
+keywords = ["static", "http", "server", "cli"]
+categories = ["development-tools", "command-line-utilities"]
 
 [profile.release]
 panic = 'abort'
