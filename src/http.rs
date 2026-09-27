@@ -178,7 +178,9 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
             None => continue,
         };
         let trailing = if f.is_dir() { "/" } else { "" };
-        buf.write_all(format!("<li><a href=\"/{href}{trailing}\">{name}{trailing}</li>").as_bytes())?;
+        buf.write_all(
+            format!("<li><a href=\"/{href}{trailing}\">{name}{trailing}</li>").as_bytes(),
+        )?;
     }
     buf.write_all(b"</ol></body></html>")?;
 

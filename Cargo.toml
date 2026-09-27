@@ -1,13 +1,16 @@
 [package]
-name = "rup"
+name = "ntalbs-rup"
 version = "0.1.0"
 edition = "2024"
 
 [profile.release]
 panic = 'abort'
 
+[[bin]]
+name = "rup"
+path = "src/main.rs"
+
 [dependencies]
-coloring = { git = "https://github.com/ntalbs/coloring.git" }
 
 [dev-dependencies]
 p-test = "1.0.2"

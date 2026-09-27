@@ -1,13 +1,14 @@
 mod cli;
+mod color;
 mod decode;
 mod http;
 mod mime;
 
 use crate::{
     cli::{Args, ParseResult, show_help, show_version},
+    color::Color,
     http::{Request, Response},
 };
-use coloring::Color;
 use std::{
     io::{self, Error, ErrorKind},
     net::{TcpListener, TcpStream},
