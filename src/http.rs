@@ -145,6 +145,21 @@ fn files_in(dir: &Path) -> io::Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+fn escape_html(input: &str) -> String {
+    let mut ret = String::new();
+    for ch in input.chars() {
+        match ch {
+            '<' => ret.push_str("&lt;"),
+            '>' => ret.push_str("&gt;"),
+            '&' => ret.push_str("&amp;"),
+            '"' => ret.push_str("&quot;"),
+            '\'' => ret.push_str("&#x27;"),
+            _ => ret.push(ch),
+        }
+    }
+    ret
+}
+
 pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::Result<usize> {
     let mut buf: Vec<u8> = Vec::new();
     let path_display = match path.to_str() {
@@ -155,7 +170,7 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
         format!(
             "<html><head>{}</head><body><p style=\"color: #fff; background-color: #44f;\">Path: {}</p><ol>",
             css(),
-            path_display
+            escape_html(path_display)
         )
         .as_bytes(),
     )?;
@@ -168,13 +183,13 @@ pub(crate) fn show_dir(stream: &mut TcpStream, base: &str, path: &Path) -> io::R
     for f in paths {
         let href = match f.strip_prefix(base) {
             Ok(href) => match href.to_str() {
-                Some(href) => href,
+                Some(href) => escape_html(href),
                 None => continue,
             },
             Err(_) => continue,
         };
         let name = match f.file_name().and_then(|name| name.to_str()) {
-            Some(name) => name,
+            Some(name) => escape_html(name),
             None => continue,
         };
         let trailing = if f.is_dir() { "/" } else { "" };
